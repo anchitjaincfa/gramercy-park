@@ -32,7 +32,7 @@ merges — see `docs/PLAN.md` §2.
 7. **No accounting periods / close / valuation versioning / NAV snapshots** → **Fixed.** Added
    periods (open/close/reopen/restate), versioned valuations, immutable NAV snapshots. (ARCH §3.3)
 8. **Phase 7 contained foundational concerns (RBAC/RLS/audit/consolidation)** → **Fixed.** Pulled
-   minimum-viable RLS/audit/roles into Phase 1; Phase 7 now *broadens* them. (PLAN §5)
+   minimum-viable RLS/audit/roles into Phase 1; Phase 7 now _broadens_ them. (PLAN §5)
 
 **Suggestions adopted:** split Phase 2 into 2a/2b/2c; DB-level constraints alongside TS
 invariants (ARCH §9); pure `ledger` engine vs. transactional service layer (ARCH §8); explicit

@@ -4,11 +4,11 @@ This document is the master plan for building Gramercy Park. It describes **what
 building, and — just as importantly — **how** we build it: with parallel AI agent teams
 orchestrated in phases, and an independent Codex reviewer gating every phase.
 
-Author's stance (channeling the "AI-native" thesis): treat AI agents as a *fleet of engineers*,
+Author's stance (channeling the "AI-native" thesis): treat AI agents as a _fleet of engineers_,
 not an autocomplete. The human (and the orchestrator agent) act as a **staff engineer + eng
 manager**: decompose the work into independently-verifiable units, fan them out to specialized
 agents, and impose a hard quality gate (Codex review + tests + typecheck) before anything
-merges. The AI writes most of the code; the *system design and the verification bar* are what
+merges. The AI writes most of the code; the _system design and the verification bar_ are what
 make it trustworthy.
 
 ---
@@ -26,7 +26,7 @@ We resolve this with a strict architectural rule that pervades the whole codebas
 - The **ledger engine** (`packages/ledger`) is pure, deterministic, and has zero AI in it. It
   enforces double-entry invariants (debits == credits, per-entity balance, immutable posted
   journals). It is tested like a bank ledger: property tests, golden trial balances.
-- The **agent layer** (`packages/agents`) reads context and emits typed *proposals*
+- The **agent layer** (`packages/agents`) reads context and emits typed _proposals_
   (`ProposedJournalEntry`, `ProposedMatch`, `ProposedLpReply`). A proposal carries citations to
   its source evidence and a confidence signal. It **cannot post**.
 - A **human-in-the-loop review queue** is the only bridge. An approval turns a proposal into a
@@ -45,10 +45,10 @@ data-flow constraint rather than a slogan.
   spawns agent teams, integrates their output, runs the review gates, and commits.
 - **Builder agents (Claude subagents / Workflow fan-out):** each owns one independently-testable
   unit (a package, a schema module, a UI surface, a test suite). They return structured results.
-- **Codex reviewer (Codex CLI, `codex exec` / `codex exec review`):** an *independent* model
+- **Codex reviewer (Codex CLI, `codex exec` / `codex exec review`):** an _independent_ model
   reviews each phase's diff for correctness, security, and design before merge. Using a
   different model family for review is deliberate — it reduces correlated blind spots.
-- **Verifier agents:** adversarial checkers that try to *break* the accounting invariants and the
+- **Verifier agents:** adversarial checkers that try to _break_ the accounting invariants and the
   AI proposals (e.g., "find inputs where the NAV engine double-counts").
 
 ### 2.2 The per-phase loop
@@ -62,7 +62,7 @@ PLAN → (Codex reviews the plan) → FAN-OUT build → INTEGRATE →
 
 1. **Plan the phase.** Orchestrator writes a short phase spec (goals, package boundaries,
    interfaces, test criteria).
-2. **Codex reviews the plan.** `codex exec` reads the spec and flags gaps/risks *before* code is
+2. **Codex reviews the plan.** `codex exec` reads the spec and flags gaps/risks _before_ code is
    written. Cheaper to fix a design flaw here than after 20 files exist.
 3. **Fan out.** Independent workstreams run in parallel (Workflow tool / parallel subagents).
    Boundaries are chosen so agents don't touch the same files — schema, engine, UI, and tests
@@ -92,19 +92,19 @@ PLAN → (Codex reviews the plan) → FAN-OUT build → INTEGRATE →
 
 ## 3. Technical stack
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Language | TypeScript (strict) | One language across engine, agents, and both apps |
-| Monorepo | Turborepo + npm workspaces | Cached builds, clean package boundaries |
-| Web | Next.js (App Router) | Two apps: GP console + LP portal |
-| UI | Tailwind + shadcn/ui | Fast, consistent, enterprise-clean design system |
-| DB | Postgres (Supabase) | RLS for multi-tenant/LP isolation; matches house stack |
-| ORM | Drizzle | Typed schema, SQL-first migrations, no magic |
-| Money | integer minor units + `decimal.js` for ratios | Never float for money |
-| AI | Anthropic Claude (via `@anthropic-ai/sdk`) | Product agents; structured tool outputs |
-| Reviewer | Codex CLI | Independent cross-model review gate |
-| Deploy | Vercel | Matches house stack |
-| Tests | Vitest + property tests (fast-check) | Ledger invariants demand property testing |
+| Concern  | Choice                                        | Rationale                                              |
+| -------- | --------------------------------------------- | ------------------------------------------------------ |
+| Language | TypeScript (strict)                           | One language across engine, agents, and both apps      |
+| Monorepo | Turborepo + npm workspaces                    | Cached builds, clean package boundaries                |
+| Web      | Next.js (App Router)                          | Two apps: GP console + LP portal                       |
+| UI       | Tailwind + shadcn/ui                          | Fast, consistent, enterprise-clean design system       |
+| DB       | Postgres (Supabase)                           | RLS for multi-tenant/LP isolation; matches house stack |
+| ORM      | Drizzle                                       | Typed schema, SQL-first migrations, no magic           |
+| Money    | integer minor units + `decimal.js` for ratios | Never float for money                                  |
+| AI       | Anthropic Claude (via `@anthropic-ai/sdk`)    | Product agents; structured tool outputs                |
+| Reviewer | Codex CLI                                     | Independent cross-model review gate                    |
+| Deploy   | Vercel                                        | Matches house stack                                    |
+| Tests    | Vitest + property tests (fast-check)          | Ledger invariants demand property testing              |
 
 ---
 
@@ -133,12 +133,14 @@ Core entities the whole system revolves around (detailed in `docs/ARCHITECTURE.m
 
 Each phase is a shippable, reviewed increment. Later phases depend on earlier ones.
 
-### Phase 0 — Foundation *(in progress)*
+### Phase 0 — Foundation _(in progress)_
+
 Monorepo scaffold, tooling (TS, ESLint, Prettier, Vitest, Turbo), CI (typecheck+test on PR),
 design-system base, seed-data framework, and these planning docs. **Gate:** Codex reviews the
 plan + scaffold.
 
-### Phase 1 — Double-entry ledger core *(+ foundational tenancy/audit)*
+### Phase 1 — Double-entry ledger core _(+ foundational tenancy/audit)_
+
 `packages/db` schema (firms, entities, accounts, **journal batches** for intercompany, journals,
 lines) + `packages/ledger` pure deterministic engine: post balanced journals, reject unbalanced
 ones, per-entity trial balance, chart-of-accounts helpers. **Ships the foundations Codex flagged
@@ -150,37 +152,45 @@ a minimal role model. Property tests for every invariant. **Gate.**
 > checks is too much for one review).
 
 ### Phase 2a — Commitments & capital calls
+
 Share classes, commitments, capital calls with **30+ automated health checks** (commitment
 limits, allocation math, recallable capital, LPA constraints, prior-call reconciliation),
 largest-remainder allocation. **Gate.**
 
 ### Phase 2b — Distributions, fees & capital accounts
+
 Distributions (return of capital / gain / income, recallable), management-fee calc per class, and
 the **deterministic capital-account allocation model** reconciling to partners'-capital GL. **Gate.**
 
 ### Phase 2c — Valuation, periods & NAV
+
 Accounting periods (open/close/reopen/restate), versioned valuations with mark-to-market
 journals, and reproducible **NAV snapshots** with per-LP shares. (Full carry waterfall is a later
 gate.) **Gate.**
 
 ### Phase 3 — Reconciliation engine
+
 Mock bank-feed ingestion, **three-way matching** (bank ↔ source document ↔ GL), auto-
 categorization, and an exception queue with full context. **Gate.**
 
 ### Phase 4 — AI agent layer
+
 Claude-powered, propose-only product agents with structured tool outputs and evidence citations:
 journal-entry agent (from a bill/email), reconciliation agent, KPI-collection agent, LP-response
 agent. The human review queue UI. **Gate.**
 
 ### Phase 5 — Portfolio intelligence
+
 Deal-document & cap-table ingestion, KPI collection reconciled across sources, equity-pickup /
 ownership tracking, investment-update schedules, portfolio dashboard. **Gate.**
 
 ### Phase 6 — LP experience
+
 LP portal: capital-account statements, capital-call/distribution history, **ILPA-style
 reporting**, document vault, and an LP Q&A agent grounded in that LP's data (RLS-enforced). **Gate.**
 
 ### Phase 7 — Enterprise hardening
+
 **Broadens** the foundations that already shipped in Phase 1 (RLS, audit, role model): full RBAC
 with approval thresholds and segregation of duties, multi-entity **consolidation & eliminations**
 (a query over journal batches, per the intercompany model), observability, broadened test
@@ -202,5 +212,5 @@ coverage, and Vercel deployment. **Gate.**
 ## 7. Non-goals (for now)
 
 - Real bank/custodian integrations, real KYC/AML, or real money movement.
-- Regulatory certification (SOC 2, audit sign-off). We *model* audit-readiness; we don't claim it.
+- Regulatory certification (SOC 2, audit sign-off). We _model_ audit-readiness; we don't claim it.
 - Multi-currency FX beyond a single reporting currency (revisit post-Phase 7).

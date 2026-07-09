@@ -29,13 +29,7 @@ export const accountType = pgEnum('account_type', [
 export const lineSide = pgEnum('line_side', ['debit', 'credit']);
 export const batchStatus = pgEnum('batch_status', ['draft', 'posted', 'reversed']);
 export const journalStatus = pgEnum('journal_status', ['draft', 'posted', 'reversed']);
-export const roleType = pgEnum('role_type', [
-  'owner',
-  'accountant',
-  'reviewer',
-  'read_only',
-  'lp',
-]);
+export const roleType = pgEnum('role_type', ['owner', 'accountant', 'reviewer', 'read_only', 'lp']);
 
 const money = (name: string) => bigint(name, { mode: 'number' });
 

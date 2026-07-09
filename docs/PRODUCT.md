@@ -11,7 +11,7 @@ The back office for private-markets funds, rebuilt AI-native. One platform for t
 partner's fund accounting, portfolio intelligence, and the limited partner's experience — where
 AI does the preparation and human experts approve every output.
 
-**Operating principle:** *AI prepares. Expert accountants review.*
+**Operating principle:** _AI prepares. Expert accountants review._
 
 ## Users
 
@@ -69,7 +69,7 @@ Mirrors the category's agent workflows; all outputs are proposals in the review 
 
 Category signal we design toward (from public materials): ~90% of cash auto-categorized, ~80% of
 email-agent actions approved without edits, same-day capital-activity visibility. These are
-*targets that shape the UX* (fast prepare, tight review), not guarantees.
+_targets that shape the UX_ (fast prepare, tight review), not guarantees.
 
 ## What makes it "AI-native" (not "AI-added")
 
@@ -77,4 +77,4 @@ email-agent actions approved without edits, same-day capital-activity visibility
   triaging AI proposals, not typing journal entries from scratch.
 - **Every AI output is evidence-linked and editable** before it becomes truth.
 - The **deterministic ledger is the source of truth**; AI accelerates the path to a posted,
-  reconciled, audit-ready book — it never *is* the book.
+  reconciled, audit-ready book — it never _is_ the book.

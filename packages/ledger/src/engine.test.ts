@@ -164,7 +164,14 @@ describe('validateBatch — intercompany', () => {
 
   it('rejects an empty batch', () => {
     const result = validateBatch(
-      { date: '2026-02-01', memo: '', sourceType: 's', sourceId: 'x', idempotencyKey: 'k', journals: [] },
+      {
+        date: '2026-02-01',
+        memo: '',
+        sourceType: 's',
+        sourceId: 'x',
+        idempotencyKey: 'k',
+        journals: [],
+      },
       LOOKUP,
     );
     expect(result.ok).toBe(false);

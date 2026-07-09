@@ -18,7 +18,7 @@ Its operating principle, borrowed from the category it targets:
 > **AI prepares. Expert accountants review.**
 
 Every AI action (a proposed journal entry, a reconciliation match, an LP response) is a
-*proposal* that lands in a human review queue with full source traceability. Nothing posts to
+_proposal_ that lands in a human review queue with full source traceability. Nothing posts to
 the ledger without an approval and an audit trail.
 
 > ⚠️ **This is an educational open-source clone** built to study the architecture of the
@@ -33,7 +33,7 @@ Two reasons, and this repo is an experiment in both:
 - **A serious reference architecture** for what "AI-native" means in a domain where correctness
   is non-negotiable (money must balance to the cent) — showing how you bolt probabilistic AI
   onto a deterministic accounting core without letting the AI touch the source of truth.
-- **A demonstration of AI-native *construction*** — the entire codebase is built by parallel
+- **A demonstration of AI-native _construction_** — the entire codebase is built by parallel
   Claude agent teams orchestrated in phases, with the Codex CLI acting as an independent
   reviewer at every gate. See [`docs/PLAN.md`](docs/PLAN.md).
 
@@ -62,18 +62,18 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
 
 Built in public, phase by phase. Track progress in [`docs/PLAN.md`](docs/PLAN.md).
 
-| Phase | Scope | Status |
-|------:|-------|--------|
-| 0 | Foundation, monorepo, docs, CI | ✅ done |
-| 1 | Double-entry ledger core (+ tenancy/RLS/audit) | ✅ done |
-| 2a | Commitments & capital calls | ⏳ |
-| 2b | Distributions, fees & capital accounts | ⏳ |
-| 2c | Valuation, periods & NAV | ⏳ |
-| 3 | Reconciliation engine | ⏳ |
-| 4 | AI agent layer | ⏳ |
-| 5 | Portfolio intelligence | ⏳ |
-| 6 | LP experience | ⏳ |
-| 7 | Enterprise hardening & deploy | ⏳ |
+| Phase | Scope                                          | Status  |
+| ----: | ---------------------------------------------- | ------- |
+|     0 | Foundation, monorepo, docs, CI                 | ✅ done |
+|     1 | Double-entry ledger core (+ tenancy/RLS/audit) | ✅ done |
+|    2a | Commitments & capital calls                    | ⏳      |
+|    2b | Distributions, fees & capital accounts         | ⏳      |
+|    2c | Valuation, periods & NAV                       | ⏳      |
+|     3 | Reconciliation engine                          | ⏳      |
+|     4 | AI agent layer                                 | ⏳      |
+|     5 | Portfolio intelligence                         | ⏳      |
+|     6 | LP experience                                  | ⏳      |
+|     7 | Enterprise hardening & deploy                  | ⏳      |
 
 ## License
 

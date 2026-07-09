@@ -27,7 +27,10 @@ export function accountsById(accounts: readonly Account[]): Map<string, Account>
 }
 
 /** Totals for one balanced set of lines, per side, in a single currency. */
-function sideTotals(lines: readonly JournalLineInput[], currency: string): { debit: Money; credit: Money } {
+function sideTotals(
+  lines: readonly JournalLineInput[],
+  currency: string,
+): { debit: Money; credit: Money } {
   let debit = zero(currency);
   let credit = zero(currency);
   for (const line of lines) {
@@ -190,7 +193,10 @@ export function accountBalances(
   for (const line of lines) {
     if (line.amount.currency !== currency) continue;
     const prev = net.get(line.accountId) ?? zero(currency);
-    net.set(line.accountId, line.side === 'debit' ? add(prev, line.amount) : sub(prev, line.amount));
+    net.set(
+      line.accountId,
+      line.side === 'debit' ? add(prev, line.amount) : sub(prev, line.amount),
+    );
   }
 
   const out: AccountBalance[] = [];
