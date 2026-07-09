@@ -58,3 +58,68 @@ export interface CapitalCall {
   currency: string;
   allocations: CapitalCallAllocation[];
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2b — distributions, fees & capital accounts
+// ---------------------------------------------------------------------------
+
+export type DistributionKind = 'return_of_capital' | 'gain' | 'income';
+
+export interface DistributionAllocation {
+  lpId: string;
+  amountMinor: number;
+}
+
+export interface Distribution {
+  id: string;
+  firmId: string;
+  fundId: string;
+  number: number;
+  date: string;
+  kind: DistributionKind;
+  /** Whether the returned capital is recallable by the fund. */
+  recallable: boolean;
+  totalMinor: number;
+  currency: string;
+  allocations: DistributionAllocation[];
+}
+
+export type FeeBasis = 'committed' | 'invested' | 'nav';
+export type FeeFrequency = 'quarterly' | 'semiannual' | 'annual';
+
+export interface MgmtFeeSchedule {
+  id: string;
+  firmId: string;
+  fundId: string;
+  classId: string;
+  rateBps: number;
+  basis: FeeBasis;
+  frequency: FeeFrequency;
+}
+
+/**
+ * A single event in an LP's capital-account history. The capital account is
+ * rebuilt deterministically by folding these in date order (see
+ * docs/ARCHITECTURE.md §4.2). `pnl_allocation` amounts may be negative (losses);
+ * all others are non-negative magnitudes whose sign is implied by `kind`.
+ */
+export type CapitalAccountEventKind =
+  'contribution' | 'distribution' | 'mgmt_fee' | 'pnl_allocation';
+
+export interface CapitalAccountEvent {
+  lpId: string;
+  date: string;
+  kind: CapitalAccountEventKind;
+  /** Minor units. Non-negative except for `pnl_allocation`, which may be negative. */
+  amountMinor: number;
+}
+
+export interface CapitalAccountBalance {
+  lpId: string;
+  contributedMinor: number;
+  distributedMinor: number;
+  feesMinor: number;
+  allocatedPnlMinor: number;
+  /** contributed − distributed − fees + allocatedPnl. */
+  balanceMinor: number;
+}

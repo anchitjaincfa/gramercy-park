@@ -6,6 +6,7 @@ import {
   timestamp,
   bigint,
   integer,
+  boolean,
   jsonb,
   date,
   uniqueIndex,
@@ -36,6 +37,15 @@ export const roleType = pgEnum('role_type', ['owner', 'accountant', 'reviewer', 
 export const lpStatus = pgEnum('lp_status', ['active', 'transferred', 'inactive']);
 export const callStatus = pgEnum('call_status', ['draft', 'issued', 'posted']);
 export const callAllocKind = pgEnum('call_alloc_kind', ['contribution', 'recall', 'fee_offset']);
+
+// Phase 2b — distributions and management fees
+export const distributionKind = pgEnum('distribution_kind', [
+  'return_of_capital',
+  'gain',
+  'income',
+]);
+export const feeBasis = pgEnum('fee_basis', ['committed', 'invested', 'nav']);
+export const feeFrequency = pgEnum('fee_frequency', ['quarterly', 'semiannual', 'annual']);
 
 const money = (name: string) => bigint(name, { mode: 'number' });
 
@@ -307,6 +317,72 @@ export const capitalCallAllocations = pgTable(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Phase 2b — distributions and management fees. Same firm-pinned composite FK
+// discipline as Phase 2a: children carry firm_id (and fund_id where relevant)
+// into composite (id, firm_id) targets. See migrations/0002_distributions_fees.sql.
+// ---------------------------------------------------------------------------
+
+export const distributions = pgTable(
+  'distributions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    fundId: uuid('fund_id').notNull(),
+    number: integer('number').notNull(),
+    date: date('date').notNull(),
+    kind: distributionKind('kind').notNull(),
+    recallable: boolean('recallable').notNull().default(false),
+    totalMinor: money('total_minor').notNull(),
+    currency: text('currency').notNull(),
+    status: text('status').notNull().default('draft'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uqFundNumber: uniqueIndex('uq_distributions_fund_number').on(t.fundId, t.number),
+    // composite target so allocations can firm-pin a distribution
+    uqIdFirm: uniqueIndex('uq_distributions_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const distributionAllocations = pgTable(
+  'distribution_allocations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    distributionId: uuid('distribution_id').notNull(),
+    lpId: uuid('lp_id').notNull(),
+    amountMinor: money('amount_minor').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uqDistributionLp: uniqueIndex('uq_dist_alloc_distribution_lp').on(t.distributionId, t.lpId),
+  }),
+);
+
+export const mgmtFeeSchedules = pgTable(
+  'mgmt_fee_schedules',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    fundId: uuid('fund_id').notNull(),
+    classId: uuid('class_id').notNull(),
+    rateBps: integer('rate_bps').notNull(),
+    basis: feeBasis('basis').notNull(),
+    frequency: feeFrequency('frequency').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    byFirm: index('idx_mgmt_fee_schedules_firm').on(t.firmId),
+  }),
+);
+
 export const schema = {
   firms,
   memberships,
@@ -321,4 +397,7 @@ export const schema = {
   commitments,
   capitalCalls,
   capitalCallAllocations,
+  distributions,
+  distributionAllocations,
+  mgmtFeeSchedules,
 };

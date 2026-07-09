@@ -131,3 +131,28 @@ the orchestrator. **Reviewer:** `codex exec` (read-only) on the integrated diff.
 `call_date`/`due_date`/`purpose`/`effective_date`; schema mirrors the new composite uniques.
 
 **Verdict:** 45/45 tests pass, typecheck clean. Merged; Phase 2a complete.
+
+---
+
+## Gate 2b.1 — Phase 2b (distributions, fees & capital accounts)
+
+**Built by 4 parallel builder agents** (db schema ∥ distributions ∥ management fees ∥
+capital-account model), integrated by the orchestrator. **Reviewer:** `codex exec` (read-only).
+
+**4 confirmed bugs → resolution:**
+
+1. `computeMgmtFee` returned bucket 0 every call, so billing N periods overcharged by the
+   crumb (annual 1¢ quarterly → 1¢ × 4). → **Fixed:** added `periodMgmtFees` (full schedule) and a
+   `periodIndex` param; billing all periods now sums to the exact annual fee.
+2. `buildDistributionBatch` could under-post — it posted the allocations regardless of
+   `dist.totalMinor`. → **Fixed:** requires positive allocations summing exactly to `totalMinor`.
+3. Capital-account arithmetic used plain `number` add and only `isInteger`, so values past
+   `MAX_SAFE_INTEGER` silently lost cents. → **Fixed:** `isSafeInteger` validation + `checkedAdd`
+   that throws on overflow.
+4. Capital-account output `Map` order depended on input event order. → **Fixed:** lpIds sorted
+   ascending for canonical iteration order.
+
+**Suggestions adopted:** reject duplicate `lpId`s in `allocateDistribution` / `computeMgmtFeePerLp`;
+guard `cashAccountId !== capitalAccountId` in both the distribution **and** capital-call builders.
+
+**Verdict:** 91/91 tests pass, typecheck clean. Merged; Phase 2b complete.

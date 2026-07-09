@@ -19,6 +19,9 @@ export function buildCapitalCallBatch(
   call: CapitalCall,
   opts: { cashAccountId: string; capitalAccountId: string; sourceType?: string },
 ): BatchInput {
+  if (opts.cashAccountId === opts.capitalAccountId) {
+    throw new Error('buildCapitalCallBatch: cash and capital accounts must differ');
+  }
   const lines: JournalLineInput[] = [];
   for (const alloc of call.allocations) {
     if (alloc.kind !== 'contribution') continue;

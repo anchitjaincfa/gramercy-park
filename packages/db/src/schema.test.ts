@@ -3,7 +3,7 @@ import { getTableName } from 'drizzle-orm';
 import { schema } from './schema';
 
 describe('schema', () => {
-  it('defines all Phase 1 + Phase 2a tables', () => {
+  it('defines all Phase 1 + Phase 2a + Phase 2b tables', () => {
     const names = Object.values(schema).map((t) => getTableName(t));
     expect(new Set(names)).toEqual(
       new Set([
@@ -22,6 +22,10 @@ describe('schema', () => {
         'commitments',
         'capital_calls',
         'capital_call_allocations',
+        // Phase 2b — distributions & management fees
+        'distributions',
+        'distribution_allocations',
+        'mgmt_fee_schedules',
       ]),
     );
   });
