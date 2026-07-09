@@ -202,3 +202,30 @@ documented the deficit-LP forfeiture policy in NAV allocation.
    word-boundary matching.
 
 **Verdict:** 167/167 tests pass, typecheck clean. Merged; Phase 3 complete.
+
+---
+
+## Gate 4.1 — Phase 4 part 1 (journal-entry agent + review-queue boundary)
+
+**Reviewer:** `codex exec` (read-only). The AI↔ledger safety boundary, reviewed hardest.
+
+**Codex confirmed the core property:** there is **no propose-to-ledger bypass** — an agent only
+returns a `Proposal`; only `approveJournalEntry` produces a `BatchInput`, and it re-validates via
+the ledger's `validateBatch`, so an unbalanced/tampered proposal can't become a valid batch.
+
+**3 confirmed hardening bugs → resolution:**
+
+1. Audit model metadata could drift (stamped a default, not the model actually used). → **Fixed:**
+   the proposer returns the real model; the agent stamps that.
+2. Approval lacked a runtime kind/schema gate (trusted the TS type). → **Fixed:** rejects a
+   wrong `kind` or unknown `schemaVersion` with `INVALID_PROPOSAL`.
+3. A malformed/reviewer-edited payload could throw (missing lines, blank currency). → **Fixed:**
+   payload shape guarded → typed `MALFORMED_PAYLOAD` rejection.
+
+**Suggestions adopted:** reject duplicate account codes; `disable_parallel_tool_use: true` + assert
+exactly one tool call. Model id `claude-opus-4-8`, forced strict `tool_choice`, and stamped-by-us
+trust metadata all verified sound.
+
+**Verdict:** 8/8 tests pass (fixture-replay, no live API), typecheck clean. Merged. The live path
+runs against the real Claude API via `npm run -w @gramercy/agents demo` (needs `ANTHROPIC_API_KEY`).
+Three more agents (reconciliation, KPI, LP-response) remain for Phase 4.
