@@ -40,3 +40,26 @@ allocation semantics; document-filing treated as a proposal (ARCH §5); adversar
 tenant-leak/prompt-injection tests (ARCH §10).
 
 **Verdict:** all blocking findings resolved in docs. Cleared to scaffold and begin Phase 1.
+
+---
+
+## Gate 1.1 — `packages/core` money foundation
+
+**Reviewer:** `codex exec` (read-only). **Scope:** `packages/core` (money.ts, result.ts, index.ts, tests).
+
+**Confirmed correctness bugs → resolution:**
+
+1. **Unsafe integers accepted** — `Number.isInteger(2**53)` is `true`, but arithmetic past
+   `MAX_SAFE_INTEGER` silently loses cents, which could make `allocate()` fail to preserve a
+   total. → **Fixed.** `money()` now requires `Number.isSafeInteger`; since every operation funnels
+   through `money()`, any overflowing result is rejected (throws) rather than silently corrupting.
+   Regression tests added.
+2. **Structural `Money` bypassed the constructor** — an object literal `{ amount: 1.5, currency }`
+   satisfied the interface. → **Fixed.** `Money` is now a phantom-branded type; only `money()` can
+   mint one.
+
+**Suggestions adopted:** `allocate`/`applyBps` accept `Decimal.Value` (number|string|Decimal) so
+callers can pass exact weights and avoid float precision affecting tie-breaks; `applyBps` validates
+finite bps; added boundary tests around `MAX_SAFE_INTEGER`, overflow rejection, and exact weights.
+
+**Verdict:** 15/15 tests pass (incl. fast-check property tests), typecheck clean. Merged.
