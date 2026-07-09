@@ -93,3 +93,114 @@ export interface RawJournalEntryProposal {
 export interface JournalEntryProposer {
   propose(ctx: JournalEntryContext): Promise<RawJournalEntryProposal>;
 }
+
+// --- Reconciliation-match agent ----------------------------------------------
+
+export interface ProposedReconciliationMatch {
+  readonly bankTransactionId: string;
+  readonly ledgerEntryId?: string;
+  readonly documentId?: string;
+  readonly status: 'matched' | 'partial' | 'unmatched';
+  readonly rationale: string;
+}
+export type ReconciliationMatchProposal = Proposal<
+  'reconciliation_match',
+  ProposedReconciliationMatch
+>;
+
+export interface ReconciliationContext {
+  readonly bankTransaction: {
+    readonly id: string;
+    readonly date: string;
+    readonly amountMinor: number;
+    readonly currency: string;
+    readonly description: string;
+  };
+  readonly candidateLedgerEntries: readonly {
+    readonly id: string;
+    readonly date: string;
+    readonly amountMinor: number;
+    readonly currency: string;
+    readonly memo: string;
+  }[];
+  readonly candidateDocuments: readonly {
+    readonly id: string;
+    readonly kind: string;
+    readonly date: string;
+    readonly amountMinor: number;
+    readonly currency: string;
+    readonly reference: string;
+  }[];
+}
+export interface RawReconciliationProposal {
+  readonly payload: ProposedReconciliationMatch;
+  readonly evidence: readonly EvidenceCitation[];
+  readonly confidence: number;
+  readonly model: string;
+}
+export interface ReconciliationProposer {
+  propose(ctx: ReconciliationContext): Promise<RawReconciliationProposal>;
+}
+
+// --- KPI-reconciliation agent ------------------------------------------------
+
+export interface KpiSourceValue {
+  readonly source: string;
+  readonly value: string;
+}
+export interface ProposedKpi {
+  readonly companyId: string;
+  readonly period: string;
+  readonly metric: string;
+  readonly reconciledValue: string;
+  readonly sources: readonly KpiSourceValue[];
+  readonly rationale: string;
+}
+export type KpiProposal = Proposal<'kpi', ProposedKpi>;
+
+export interface KpiContext {
+  readonly companyId: string;
+  readonly period: string;
+  readonly metric: string;
+  readonly observations: readonly {
+    readonly source: string;
+    readonly value: string;
+    readonly quote: string;
+  }[];
+}
+export interface RawKpiProposal {
+  readonly payload: ProposedKpi;
+  readonly evidence: readonly EvidenceCitation[];
+  readonly confidence: number;
+  readonly model: string;
+}
+export interface KpiProposer {
+  propose(ctx: KpiContext): Promise<RawKpiProposal>;
+}
+
+// --- LP-response agent -------------------------------------------------------
+
+export interface ProposedLpReply {
+  readonly lpId: string;
+  readonly subject: string;
+  readonly draftReply: string;
+  readonly suggestedActions: readonly string[];
+}
+export type LpReplyProposal = Proposal<'lp_reply', ProposedLpReply>;
+
+export interface LpResponseContext {
+  readonly lpId: string;
+  readonly lpName: string;
+  readonly inboundMessage: string;
+  /** Grounding facts the reply may reference — RLS-scoped to THIS LP only. */
+  readonly lpFacts: readonly { readonly label: string; readonly value: string }[];
+}
+export interface RawLpReplyProposal {
+  readonly payload: ProposedLpReply;
+  readonly evidence: readonly EvidenceCitation[];
+  readonly confidence: number;
+  readonly model: string;
+}
+export interface LpResponseProposer {
+  propose(ctx: LpResponseContext): Promise<RawLpReplyProposal>;
+}

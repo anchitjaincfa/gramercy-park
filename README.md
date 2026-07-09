@@ -70,7 +70,7 @@ Built in public, phase by phase. Track progress in [`docs/PLAN.md`](docs/PLAN.md
 |    2b | Distributions, fees & capital accounts         | ✅ done |
 |    2c | Valuation, periods & NAV                       | ✅ done |
 |     3 | Reconciliation engine                          | ✅ done |
-|     4 | AI agent layer                                 | ⏳      |
+|     4 | AI agent layer                                 | ✅ done |
 |     5 | Portfolio intelligence                         | ⏳      |
 |     6 | LP experience                                  | ⏳      |
 |     7 | Enterprise hardening & deploy                  | ⏳      |

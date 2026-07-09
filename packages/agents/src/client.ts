@@ -125,7 +125,7 @@ export function anthropicJournalEntryProposer(
       // strict:true guarantees the payload/evidence/confidence shape; we stamp the
       // actual model ourselves so audit metadata cannot drift from reality.
       const raw = toolUses[0]!.input as unknown as Omit<RawJournalEntryProposal, 'model'>;
-      return { ...raw, model };
+      return { ...raw, model: response.model };
     },
   };
 }

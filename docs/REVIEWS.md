@@ -229,3 +229,26 @@ trust metadata all verified sound.
 **Verdict:** 8/8 tests pass (fixture-replay, no live API), typecheck clean. Merged. The live path
 runs against the real Claude API via `npm run -w @gramercy/agents demo` (needs `ANTHROPIC_API_KEY`).
 Three more agents (reconciliation, KPI, LP-response) remain for Phase 4.
+
+---
+
+## Gate 4.2 — Phase 4 remainder (reconciliation, KPI, LP-response agents)
+
+**Built by 3 parallel builder agents**, integrated by the orchestrator. **Reviewer:** `codex exec`.
+
+**Codex confirmed** all three are cleanly propose-only (no DB/ledger/send/post imports), strict tool
+schemas are well-formed, exactly-one-tool-use is enforced, and `disable_parallel_tool_use` is set.
+
+**2 confirmed issues → resolution:**
+
+1. Correctness relied on `strict:true`, which the pinned SDK type doesn't formally carry. → **Fixed:**
+   added runtime payload-shape guards in every agent wrapper, so a malformed model output throws
+   instead of producing a junk proposal — correctness no longer depends on `strict`.
+2. LP tenant grounding was prompt-only, not enforced. → **Fixed:** `proposeLpReply` now **enforces**
+   `payload.lpId === ctx.lpId` and throws on a cross-LP mismatch (regression test added).
+
+**Suggestions adopted:** stamp `response.model` (the resolved id) rather than the requested param,
+across all four proposers.
+
+**Verdict:** 20/20 agent tests pass (187 total), typecheck clean. Merged; **Phase 4 complete** —
+four Claude-powered, propose-only product agents behind a human-review boundary.
