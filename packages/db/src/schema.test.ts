@@ -31,6 +31,11 @@ describe('schema', () => {
         'valuations',
         'nav_snapshots',
         'nav_snapshot_lp_shares',
+        // Phase 3 — reconciliation
+        'bank_transactions',
+        'source_documents',
+        'reconciliation_matches',
+        'recon_exceptions',
       ]),
     );
   });

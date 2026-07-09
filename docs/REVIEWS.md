@@ -179,3 +179,26 @@ guard `cashAccountId !== capitalAccountId` in both the distribution **and** capi
 documented the deficit-LP forfeiture policy in NAV allocation.
 
 **Verdict:** 132/132 tests pass, typecheck clean. Merged; **Phase 2 complete**.
+
+---
+
+## Gate 3.1 — Phase 3 (reconciliation engine)
+
+**Built by 3 parallel builder agents** (three-way matching ∥ auto-categorization ∥ recon db schema).
+**Reviewer:** `codex exec` (read-only).
+
+**5 confirmed bugs → resolution:**
+
+1. `reconcile` ignored `firmId`/`entityId` when picking candidates → cross-firm/entity false
+   matches. → **Fixed:** candidates scoped to the bank txn's firm + entity.
+2. Greedy closest-date matching isn't a guaranteed _maximum_ matching. → **Documented** as a
+   deliberate heuristic (unmatched items surface as human-reviewed exceptions); optimal bipartite
+   assignment noted as future work.
+3. A same-amount document in the wrong currency was reported as `MISSING_DOCUMENT`. → **Fixed:**
+   now surfaced as `CURRENCY_MISMATCH`.
+4. `autoCategorizationRate` counted `uncategorized` rows when threshold ≤ 0.1. → **Fixed:** only
+   rule-matched rows count.
+5. Keyword matching used raw substring search ("wholesale rebate" → `investment_sale`). → **Fixed:**
+   word-boundary matching.
+
+**Verdict:** 167/167 tests pass, typecheck clean. Merged; Phase 3 complete.

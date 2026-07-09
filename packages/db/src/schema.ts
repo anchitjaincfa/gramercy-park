@@ -50,6 +50,24 @@ export const feeFrequency = pgEnum('fee_frequency', ['quarterly', 'semiannual', 
 // Phase 2c — accounting periods, versioned valuations, NAV snapshots
 export const periodStatus = pgEnum('period_status', ['open', 'closed', 'reopened']);
 
+// Phase 3 — reconciliation: bank transactions, source documents, matches, exceptions
+export const sourceDocKind = pgEnum('source_doc_kind', [
+  'invoice',
+  'capital_call_notice',
+  'distribution_notice',
+  'mgmt_fee_invoice',
+  'other',
+]);
+export const matchStatus = pgEnum('match_status', ['matched', 'partial', 'unmatched']);
+export const reconExceptionCode = pgEnum('recon_exception_code', [
+  'UNMATCHED_BANK',
+  'UNMATCHED_LEDGER',
+  'MISSING_DOCUMENT',
+  'AMOUNT_MISMATCH',
+  'CURRENCY_MISMATCH',
+  'DUPLICATE_MATCH',
+]);
+
 const money = (name: string) => bigint(name, { mode: 'number' });
 
 export const firms = pgTable('firms', {
@@ -481,6 +499,105 @@ export const navSnapshotLpShares = pgTable(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Phase 3 — reconciliation: imported bank transactions and source documents,
+// the matches that tie them back to the deterministic ledger, and the
+// exceptions raised when a clean three-way match cannot be made. Same
+// firm-pinned composite FK discipline: children carry firm_id into composite
+// (id, firm_id) targets so a match can never straddle two firms. See
+// migrations/0004_reconciliation.sql and docs/ARCHITECTURE.md §3.
+// ---------------------------------------------------------------------------
+
+export const bankTransactions = pgTable(
+  'bank_transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    entityId: uuid('entity_id').notNull(),
+    date: date('date').notNull(),
+    amountMinor: money('amount_minor').notNull(), // signed
+    currency: text('currency').notNull(),
+    description: text('description').notNull(),
+    counterparty: text('counterparty'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    byFirmEntityDate: index('idx_bank_transactions_firm_entity_date').on(
+      t.firmId,
+      t.entityId,
+      t.date,
+    ),
+    // composite target so matches can firm-pin a bank transaction
+    uqIdFirm: uniqueIndex('uq_bank_transactions_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const sourceDocuments = pgTable(
+  'source_documents',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    entityId: uuid('entity_id').notNull(),
+    kind: sourceDocKind('kind').notNull(),
+    date: date('date').notNull(),
+    amountMinor: money('amount_minor').notNull(),
+    currency: text('currency').notNull(),
+    reference: text('reference').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // composite target so matches can firm-pin a source document
+    uqIdFirm: uniqueIndex('uq_source_documents_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const reconciliationMatches = pgTable(
+  'reconciliation_matches',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    bankTransactionId: uuid('bank_transaction_id').notNull(),
+    ledgerJournalId: uuid('ledger_journal_id'),
+    documentId: uuid('document_id'),
+    status: matchStatus('status').notNull(),
+    confidence: integer('confidence').notNull(), // 0..100
+    reasons: text('reasons'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // one match per bank transaction
+    uqBankTransaction: uniqueIndex('uq_reconciliation_matches_bank_transaction').on(
+      t.bankTransactionId,
+    ),
+  }),
+);
+
+export const reconExceptions = pgTable(
+  'recon_exceptions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    code: reconExceptionCode('code').notNull(),
+    message: text('message').notNull(),
+    bankTransactionId: uuid('bank_transaction_id'),
+    ledgerJournalId: uuid('ledger_journal_id'),
+    documentId: uuid('document_id'),
+    resolved: boolean('resolved').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    byFirm: index('idx_recon_exceptions_firm').on(t.firmId),
+  }),
+);
+
 export const schema = {
   firms,
   memberships,
@@ -502,4 +619,8 @@ export const schema = {
   valuations,
   navSnapshots,
   navSnapshotLpShares,
+  bankTransactions,
+  sourceDocuments,
+  reconciliationMatches,
+  reconExceptions,
 };
