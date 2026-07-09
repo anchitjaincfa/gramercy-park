@@ -156,3 +156,26 @@ capital-account model), integrated by the orchestrator. **Reviewer:** `codex exe
 guard `cashAccountId !== capitalAccountId` in both the distribution **and** capital-call builders.
 
 **Verdict:** 91/91 tests pass, typecheck clean. Merged; Phase 2b complete.
+
+---
+
+## Gate 2c.1 — Phase 2c (valuation, periods & NAV)
+
+**Built by 4 parallel builder agents** (db schema ∥ valuation MTM ∥ NAV ∥ accounting periods).
+**Reviewer:** `codex exec` (read-only).
+
+**4 confirmed bugs → resolution:**
+
+1. `computeNavPerLp` returned `[]` when NAV > 0 but every LP balance ≤ 0 → an unreconciled
+   snapshot (shares sum to 0, not NAV). → **Fixed:** throws in that case (0 NAV still returns `[]`).
+2. `valuations.superseded_by` was an unconstrained UUID — could point cross-firm or at nothing.
+   → **Fixed:** composite FK `(superseded_by, firm_id) → valuations(id, firm_id)` (+ `uq` target).
+3. `periodKeyOf` validated only the substring before `T`, so `2026-03-15Tgarbage` passed. →
+   **Fixed:** validates the whole string (date + well-formed optional time suffix).
+4. Valuation MTM used `isInteger`, not `isSafeInteger`. → **Fixed:** safe-integer guard +
+   non-negative fair-value guard.
+
+**Suggestions adopted:** DB `CHECK`s for `period` format, `version > 0`, non-negative fair value;
+documented the deficit-LP forfeiture policy in NAV allocation.
+
+**Verdict:** 132/132 tests pass, typecheck clean. Merged; **Phase 2 complete**.

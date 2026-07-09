@@ -47,6 +47,9 @@ export const distributionKind = pgEnum('distribution_kind', [
 export const feeBasis = pgEnum('fee_basis', ['committed', 'invested', 'nav']);
 export const feeFrequency = pgEnum('fee_frequency', ['quarterly', 'semiannual', 'annual']);
 
+// Phase 2c — accounting periods, versioned valuations, NAV snapshots
+export const periodStatus = pgEnum('period_status', ['open', 'closed', 'reopened']);
+
 const money = (name: string) => bigint(name, { mode: 'number' });
 
 export const firms = pgTable('firms', {
@@ -109,6 +112,8 @@ export const accounts = pgTable(
     uqEntityCode: uniqueIndex('uq_accounts_entity_code').on(t.entityId, t.code),
     // composite target for journal_lines FKs (see migrations/0000_init.sql)
     uqIdEntityFirm: uniqueIndex('uq_accounts_id_entity_firm').on(t.id, t.entityId, t.firmId),
+    // composite target so valuations can firm-pin an investment account (Phase 2c)
+    uqIdFirm: uniqueIndex('uq_accounts_id_firm').on(t.id, t.firmId),
   }),
 );
 
@@ -383,6 +388,99 @@ export const mgmtFeeSchedules = pgTable(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Phase 2c — accounting periods, versioned valuations, NAV snapshots. Same
+// firm-pinned composite FK discipline: children carry firm_id (and fund_id
+// where relevant) into composite (id, firm_id) targets. Historical NAV/LP
+// statements stay reproducible — valuations are versioned and NAV is
+// snapshotted, never silently recomputed. See migrations/0003_valuation_nav.sql
+// and docs/ARCHITECTURE.md §3.3.
+// ---------------------------------------------------------------------------
+
+export const accountingPeriods = pgTable(
+  'accounting_periods',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    entityId: uuid('entity_id').notNull(),
+    period: text('period').notNull(), // YYYY-MM
+    status: periodStatus('status').notNull().default('open'),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // the entity must live in the same firm as the period
+    uqEntityPeriod: uniqueIndex('uq_accounting_periods_entity_period').on(t.entityId, t.period),
+  }),
+);
+
+export const valuations = pgTable(
+  'valuations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    investmentAccountId: uuid('investment_account_id').notNull(),
+    asOf: date('as_of').notNull(),
+    version: integer('version').notNull(),
+    fairValueMinor: money('fair_value_minor').notNull(),
+    currency: text('currency').notNull(),
+    method: text('method').notNull(),
+    supersededBy: uuid('superseded_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uqAccountAsOfVersion: uniqueIndex('uq_valuations_account_asof_version').on(
+      t.investmentAccountId,
+      t.asOf,
+      t.version,
+    ),
+    // composite target so a valuation can firm-pin the one it supersedes
+    uqIdFirm: uniqueIndex('uq_valuations_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const navSnapshots = pgTable(
+  'nav_snapshots',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    fundId: uuid('fund_id').notNull(),
+    asOf: date('as_of').notNull(),
+    totalNavMinor: money('total_nav_minor').notNull(),
+    currency: text('currency').notNull(),
+    valuationVersionSetHash: text('valuation_version_set_hash'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uqFundAsOf: uniqueIndex('uq_nav_snapshots_fund_asof').on(t.fundId, t.asOf),
+    // composite target so LP shares can firm-pin a snapshot
+    uqIdFirm: uniqueIndex('uq_nav_snapshots_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const navSnapshotLpShares = pgTable(
+  'nav_snapshot_lp_shares',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    snapshotId: uuid('snapshot_id').notNull(),
+    lpId: uuid('lp_id').notNull(),
+    navShareMinor: money('nav_share_minor').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uqSnapshotLp: uniqueIndex('uq_nav_snapshot_lp_shares_snapshot_lp').on(t.snapshotId, t.lpId),
+  }),
+);
+
 export const schema = {
   firms,
   memberships,
@@ -400,4 +498,8 @@ export const schema = {
   distributions,
   distributionAllocations,
   mgmtFeeSchedules,
+  accountingPeriods,
+  valuations,
+  navSnapshots,
+  navSnapshotLpShares,
 };

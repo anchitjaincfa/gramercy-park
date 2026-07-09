@@ -123,3 +123,51 @@ export interface CapitalAccountBalance {
   /** contributed − distributed − fees + allocatedPnl. */
   balanceMinor: number;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2c — accounting periods, valuations & NAV
+// ---------------------------------------------------------------------------
+
+export type PeriodStatus = 'open' | 'closed' | 'reopened';
+
+export interface AccountingPeriod {
+  id: string;
+  firmId: string;
+  entityId: string;
+  /** Calendar month key, `YYYY-MM`. */
+  period: string;
+  status: PeriodStatus;
+}
+
+/**
+ * A versioned fair-value mark for a GL investment account. Approving a new
+ * version posts a mark-to-market journal that moves the investment's carrying
+ * account to `fairValueMinor` (docs/ARCHITECTURE.md §3.3, §4.1) — so NAV is read
+ * purely from the posted GL and never double-counts.
+ */
+export interface Valuation {
+  id: string;
+  firmId: string;
+  /** The GL asset account that carries this investment. */
+  investmentAccountId: string;
+  asOf: string;
+  version: number;
+  fairValueMinor: number;
+  currency: string;
+  method: string;
+}
+
+export interface NavSnapshotLpShare {
+  lpId: string;
+  navShareMinor: number;
+}
+
+export interface NavSnapshot {
+  id: string;
+  firmId: string;
+  fundId: string;
+  asOf: string;
+  totalNavMinor: number;
+  currency: string;
+  lpShares: NavSnapshotLpShare[];
+}

@@ -68,7 +68,7 @@ Built in public, phase by phase. Track progress in [`docs/PLAN.md`](docs/PLAN.md
 |     1 | Double-entry ledger core (+ tenancy/RLS/audit) | ✅ done |
 |    2a | Commitments & capital calls                    | ✅ done |
 |    2b | Distributions, fees & capital accounts         | ✅ done |
-|    2c | Valuation, periods & NAV                       | ⏳      |
+|    2c | Valuation, periods & NAV                       | ✅ done |
 |     3 | Reconciliation engine                          | ⏳      |
 |     4 | AI agent layer                                 | ⏳      |
 |     5 | Portfolio intelligence                         | ⏳      |

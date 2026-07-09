@@ -26,6 +26,11 @@ describe('schema', () => {
         'distributions',
         'distribution_allocations',
         'mgmt_fee_schedules',
+        // Phase 2c — valuation, periods & NAV
+        'accounting_periods',
+        'valuations',
+        'nav_snapshots',
+        'nav_snapshot_lp_shares',
       ]),
     );
   });

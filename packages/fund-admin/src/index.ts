@@ -6,3 +6,7 @@ export * from './checks';
 export * from './distribution';
 export * from './fees';
 export * from './capital-account';
+// Phase 2c
+export * from './valuation';
+export * from './nav';
+export * from './periods';
