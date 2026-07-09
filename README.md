@@ -64,8 +64,8 @@ Built in public, phase by phase. Track progress in [`docs/PLAN.md`](docs/PLAN.md
 
 | Phase | Scope | Status |
 |------:|-------|--------|
-| 0 | Foundation, monorepo, docs, CI | 🚧 in progress |
-| 1 | Double-entry ledger core (+ tenancy/RLS/audit) | ⏳ |
+| 0 | Foundation, monorepo, docs, CI | ✅ done |
+| 1 | Double-entry ledger core (+ tenancy/RLS/audit) | ✅ done |
 | 2a | Commitments & capital calls | ⏳ |
 | 2b | Distributions, fees & capital accounts | ⏳ |
 | 2c | Valuation, periods & NAV | ⏳ |

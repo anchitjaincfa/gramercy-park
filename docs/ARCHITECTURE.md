@@ -55,8 +55,10 @@ immutability constraints also ship in Phase 1, not as later "hardening" (see §7
 
 **Intercompany:** a batch may contain journals for different entities (e.g. a management-company
 expense paid on behalf of a fund) linked by **due-to/due-from** lines. Each journal is
-independently balanced *per entity*; the batch is balanced *per counterparty pair*. This makes
-consolidation and eliminations (Phase 7) a query over batches, not a schema migration.
+independently balanced *per entity*, and the batch is balanced *per currency*. Full
+*counterparty-pair* netting (proving each entity's due-to matches the other's due-from) requires
+accounts to carry a counterparty reference; that is deferred to the consolidation/eliminations
+work in **Phase 7**. Modelling intercompany as batches now makes that a query, not a migration.
 
 **Invariants** (enforced in the pure `ledger` engine **and** by DB constraints — see §9):
 1. For every posted journal, Σ debits == Σ credits **per entity, per currency**.
@@ -191,8 +193,13 @@ is data-driven so checks are unit-tested in isolation.
 RLS, a minimal role model, and audit are **foundational, not Phase-7 hardening** — they shape the
 schema and service APIs, so their minimum-viable form ships with the first schema.
 
-- Postgres **RLS** on the denormalized `firm_id` of every table (Phase 1); LP portal adds a
-  second predicate restricting to the authenticated LP's rows (Phase 6).
+- Postgres **RLS** (`ENABLE` + `FORCE`) on the denormalized `firm_id` of every table (Phase 1),
+  default-deny via `current_setting('app.current_firm', true)`; the app sets it per transaction.
+  Migrations and firm bootstrap run as a `BYPASSRLS` service role (Supabase `service_role`), since
+  `FORCE RLS` applies even to the table owner. LP portal adds a second predicate restricting to the
+  authenticated LP's rows (Phase 6).
+- Composite foreign keys pin `firm_id` across `entities → accounts → journals → journal_lines`,
+  so a row cannot reference a parent in a different firm (defense in depth behind RLS).
 - Role model `owner | accountant | reviewer | read_only | lp` exists from Phase 1; richer RBAC
   (approval thresholds, segregation of duties) is broadened in Phase 7.
 - All mutations go through **domain services** (§9) that write an `audit_event` in the same DB

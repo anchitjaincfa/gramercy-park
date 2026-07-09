@@ -32,4 +32,3 @@ coverage/
 # codex / claude local artifacts
 .codex/
 .claude/local/
-.github/workflows/

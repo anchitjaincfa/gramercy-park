@@ -63,3 +63,41 @@ callers can pass exact weights and avoid float precision affecting tie-breaks; `
 finite bps; added boundary tests around `MAX_SAFE_INTEGER`, overflow rejection, and exact weights.
 
 **Verdict:** 15/15 tests pass (incl. fast-check property tests), typecheck clean. Merged.
+
+---
+
+## Gate 1.2 — `packages/ledger` engine + `packages/db` schema/migration
+
+**Reviewer:** `codex exec` (read-only), two passes (review + adversarial re-verify).
+
+**Pass 1 — 7 confirmed findings → resolution:**
+
+1. DB accepted posting an unbalanced/empty/mixed-currency journal on `draft→posted` (no check). →
+   **Fixed.** Added `validate_journal_on_post` trigger enforcing non-empty, single-currency,
+   ≥1 debit & ≥1 credit, and debits==credits at the DB level.
+2. Posted journals accepted **new** lines (trigger only on UPDATE/DELETE). → **Fixed.** Line
+   trigger now also fires `BEFORE INSERT`.
+3. A line could be moved **into** a posted journal (UPDATE checked OLD only). → **Fixed.** UPDATE
+   now checks both OLD and NEW parent journal status.
+4. Composite FKs didn't pin `firm_id` → cross-firm linking possible. → **Fixed.** FKs across
+   `entities → accounts → journals → journal_lines` now include `firm_id`.
+5. Batch check was tautological, not the true intercompany invariant. → **Fixed (honestly).**
+   Reworded code + docs; counterparty-pair netting deferred to Phase 7 (needs counterparty tags).
+6. Self-canceling no-op journals accepted by the engine. → **Fixed.** `NO_OP_JOURNAL` check +
+   runtime `INVALID_SIDE` guard for untyped input.
+7. `audit_events` (and posted tables) not protected against `TRUNCATE`. → **Fixed.** Statement-level
+   `BEFORE TRUNCATE` guards added.
+
+**Pass 2 (adversarial re-verify) — 3 further findings → resolution:**
+
+1. **Concurrency race:** a concurrent line write during posting could yield a posted-unbalanced
+   journal (Read Committed visibility). → **Fixed.** Line trigger takes `FOR NO KEY UPDATE` on the
+   parent journal, serializing against the post.
+2. Self-references (`entities.parent_id`, `journals.reversal_of`) weren't firm-scoped. → **Fixed.**
+   Composite FKs added (+ `uq_journals_id_firm`).
+3. No-op rejection was TS-only. → **Fixed.** DB post trigger now also rejects economic no-ops.
+
+**Not yet done:** the migration is reviewed for PG15 syntax but **not yet executed against a live
+Postgres** (no local PG/Docker in the build env). It will be validated on Supabase in Phase 2c.
+
+**Verdict:** 27/27 tests pass, typecheck clean. Merged; Phase 1 complete.
