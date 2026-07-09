@@ -101,3 +101,33 @@ finite bps; added boundary tests around `MAX_SAFE_INTEGER`, overflow rejection, 
 Postgres** (no local PG/Docker in the build env). It will be validated on Supabase in Phase 2c.
 
 **Verdict:** 27/27 tests pass, typecheck clean. Merged; Phase 1 complete.
+
+---
+
+## Gate 2a.1 — Phase 2a (commitments & capital calls)
+
+**Built by 3 parallel builder agents** (db schema ∥ fund-admin core ∥ 34 health checks), integrated by
+the orchestrator. **Reviewer:** `codex exec` (read-only) on the integrated diff.
+
+**7 confirmed bugs → resolution:**
+
+1. `NUMBER_SEQUENTIAL` allowed gaps (only checked `> maxPrior`). → **Fixed:** requires `maxPrior + 1`.
+2. `commitments.class_id` firm-pinned but not **fund**-pinned (a commitment could reference a
+   share class from another fund in the same firm). → **Fixed:** composite FK
+   `(class_id, fund_id, firm_id) → share_classes(id, fund_id, firm_id)`.
+3. `buildCapitalCallBatch` could emit an empty journal for a recall-only call (ledger rejects it).
+   → **Fixed:** throws if there are no contribution lines to post.
+4. Checks and ledger builder disagreed on `totalMinor` for mixed-kind calls. → **Fixed:** defined
+   `totalMinor` = total **contributions**; `ALLOC_SUM_EQUALS_TOTAL` now sums contributions, matching
+   what the builder posts.
+5. `NO_OVERCALL_CUMULATIVE` missed LPs already over-called but omitted from this call. → **Fixed:**
+   iterates every committed LP, not just current contributors.
+6. `ALLOC_PROPORTIONS_TRACK_COMMITMENT` ignored omitted LPs. → **Fixed:** denominator spans all
+   active committed LPs, so an omitted pro-rata LP surfaces as a deviation warning.
+7. Allocation tie-break was input-order, not canonical. → **Fixed:** allocate in ascending `lpId`
+   order so the leftover cent deterministically goes to the lowest `lpId` (regression test added).
+
+**Suggestions adopted:** positive/non-negative guards in `allocateCapitalCall`; `NOT NULL` on
+`call_date`/`due_date`/`purpose`/`effective_date`; schema mirrors the new composite uniques.
+
+**Verdict:** 45/45 tests pass, typecheck clean. Merged; Phase 2a complete.
