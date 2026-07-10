@@ -665,11 +665,7 @@ export const kpis = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
-    byFirmCompanyPeriod: index('idx_kpis_firm_company_period').on(
-      t.firmId,
-      t.companyId,
-      t.period,
-    ),
+    byFirmCompanyPeriod: index('idx_kpis_firm_company_period').on(t.firmId, t.companyId, t.period),
     uqCompanyPeriodMetricSource: uniqueIndex('uq_kpis_company_period_metric_source').on(
       t.companyId,
       t.period,
