@@ -277,3 +277,31 @@ four Claude-powered, propose-only product agents behind a human-review boundary.
 `kpi-store.ts` as **binary** — replaced with a JSON-encoded tuple key.
 
 **Verdict:** 26/26 portfolio tests pass, 213 total, typecheck clean. Merged; Phase 5 complete.
+
+---
+
+## Gate 6.1 — Phase 6 (GP console + LP portal Next.js apps)
+
+**Built by 2 parallel builder agents** (one per app). Both `next build` clean (console 9 routes, LP
+portal 9 routes), rendering figures computed by the real engine. **Reviewer:** `codex exec`.
+
+**Codex confirmed:** engine calls are genuine (console: `allocateCapitalCall`, `runChecks`,
+`buildCapitalAccounts`, `computeNav`/`computeNavPerLp`, `rollupPortfolio`; LP portal:
+`computeMgmtFee`, `capitalAccountBalance`, `buildCapitalAccounts`); review-queue is presented as
+propose-only/human-reviewed with no posting handler; money formatters divide minor units correctly;
+LP portal shows a single LP's data.
+
+**Confirmed issues → resolution:**
+
+1. NAV inconsistency from a cents-literal bug (`420_000_00` = $420k, not $4.2M), making computed NAV
+   disagree with the portfolio rollup. → **Fixed:** `4_200_000_00`; computed NAV now reconciles.
+2. A pending reconciliation proposal was also shown already `matched` — undermining the propose-only
+   boundary. → **Fixed:** that row is now an `exception` "AI-proposed match awaiting review".
+3. Seed money derived with float `Math.round` (violates the no-floats golden rule). → **Fixed:**
+   uses the engine's `allocate` / `applyBps` instead.
+
+**Deferred (low-risk):** the review-queue page casts `unknown` proposal payloads by `kind` — the seed
+constants are typed, so no runtime risk; a discriminated-union render is a future cleanup.
+
+**Verdict:** both apps `tsc` + `next build` clean; 213 tests + 2 app typechecks green. Merged;
+Phase 6 complete — the platform now has a visible, deployable UI.

@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-parchment text-ink-900 font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 100% -10%, rgba(179, 137, 79, 0.06), transparent 60%),
+      radial-gradient(900px 500px at -10% 0%, rgba(17, 29, 46, 0.05), transparent 55%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  /* Tabular, lined-up money figures */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .eyebrow {
+    @apply text-[0.68rem] font-semibold uppercase tracking-label text-gold-600;
+  }
+
+  .stat-card {
+    @apply rounded-xl border border-parchment-200 bg-white/80 p-5 shadow-card backdrop-blur-sm;
+  }
+
+  .panel {
+    @apply rounded-xl border border-parchment-200 bg-white/85 shadow-card;
+  }
+}

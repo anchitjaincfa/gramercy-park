@@ -72,7 +72,7 @@ Built in public, phase by phase. Track progress in [`docs/PLAN.md`](docs/PLAN.md
 |     3 | Reconciliation engine                          | ✅ done |
 |     4 | AI agent layer                                 | ✅ done |
 |     5 | Portfolio intelligence                         | ✅ done |
-|     6 | LP experience                                  | ⏳      |
+|     6 | GP console + LP portal (Next.js apps)          | ✅ done |
 |     7 | Enterprise hardening & deploy                  | ⏳      |
 
 ## License
