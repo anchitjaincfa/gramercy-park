@@ -131,7 +131,9 @@ describe('rollupPortfolio', () => {
 });
 
 describe('properties', () => {
-  const safeFair = fc.integer({ min: 0, max: 1_000_000_000_000 });
+  // Bound fair value so that MOIC bps (fair × 10000 at cost=1) stays within the
+  // safe-integer range — beyond it, computePosition correctly throws.
+  const safeFair = fc.integer({ min: 0, max: 100_000_000_000 });
   const bps = fc.integer({ min: 0, max: 10_000 });
 
   it('stake value never exceeds fair value and is monotonic in ownershipBps', () => {
