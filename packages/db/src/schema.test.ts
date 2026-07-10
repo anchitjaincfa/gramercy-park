@@ -36,6 +36,11 @@ describe('schema', () => {
         'source_documents',
         'reconciliation_matches',
         'recon_exceptions',
+        // Phase 5 — portfolio intelligence
+        'portfolio_companies',
+        'investments',
+        'kpis',
+        'company_valuations',
       ]),
     );
   });

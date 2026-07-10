@@ -252,3 +252,28 @@ across all four proposers.
 
 **Verdict:** 20/20 agent tests pass (187 total), typecheck clean. Merged; **Phase 4 complete** —
 four Claude-powered, propose-only product agents behind a human-review boundary.
+
+---
+
+## Gate 5.1 — Phase 5 (portfolio intelligence)
+
+**Built by 3 parallel builder agents** (portfolio db ∥ equity-pickup math ∥ KPI collection).
+**Reviewer:** `codex exec` (read-only).
+
+**4 confirmed bugs → resolution:**
+
+1. `moicBpsExact` lost precision converting a large `BigInt` back to `number`. → **Fixed:** guards
+   the result is a safe integer, throws otherwise.
+2. `rollupPortfolio` totals could silently lose minor units past `MAX_SAFE_INTEGER`. → **Fixed:**
+   `checkedAdd` throws on overflow.
+3. Investments without a valuation were silently skipped (totals looked complete) and skipped
+   before the currency check. → **Fixed:** currency validated for every investment first; skipped
+   ids surfaced in `missingValuations`.
+4. KPI `latestValue` was order-dependent on duplicate (source, asOf) records, and `toEpochDay`
+   accepted garbage time suffixes. → **Fixed:** complete tie-break (asOf → source → value);
+   full-string date validation.
+
+**Suggestion adopted (important):** the group key used **NUL-byte** delimiters, which made git treat
+`kpi-store.ts` as **binary** — replaced with a JSON-encoded tuple key.
+
+**Verdict:** 26/26 portfolio tests pass, 213 total, typecheck clean. Merged; Phase 5 complete.

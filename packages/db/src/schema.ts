@@ -598,6 +598,105 @@ export const reconExceptions = pgTable(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Phase 5 — portfolio intelligence: the portfolio companies a fund invests in,
+// the investments (positions) held against them, operating KPIs reported per
+// company/period, and periodic fair-value marks per company. Same firm-pinned
+// composite FK discipline as prior phases: children carry firm_id (and fund_id
+// where relevant) into composite (id, firm_id) targets so a position, KPI, or
+// valuation can never straddle two firms. See migrations/0005_portfolio.sql and
+// docs/ARCHITECTURE.md §3.
+// ---------------------------------------------------------------------------
+
+export const portfolioCompanies = pgTable(
+  'portfolio_companies',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    name: text('name').notNull(),
+    sector: text('sector').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    byFirm: index('idx_portfolio_companies_firm').on(t.firmId),
+    // composite target so investments/KPIs/valuations can firm-pin a company
+    uqIdFirm: uniqueIndex('uq_portfolio_companies_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const investments = pgTable(
+  'investments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    fundId: uuid('fund_id').notNull(),
+    companyId: uuid('company_id').notNull(),
+    instrument: text('instrument').notNull(),
+    costMinor: money('cost_minor').notNull(),
+    ownershipBps: integer('ownership_bps').notNull(),
+    round: text('round').notNull(),
+    date: date('date').notNull(),
+    currency: text('currency').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // composite target so downstream rows can firm-pin an investment
+    uqIdFirm: uniqueIndex('uq_investments_id_firm').on(t.id, t.firmId),
+  }),
+);
+
+export const kpis = pgTable(
+  'kpis',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    companyId: uuid('company_id').notNull(),
+    period: text('period').notNull(),
+    metric: text('metric').notNull(),
+    value: text('value').notNull(),
+    source: text('source').notNull(),
+    asOf: date('as_of').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    byFirmCompanyPeriod: index('idx_kpis_firm_company_period').on(
+      t.firmId,
+      t.companyId,
+      t.period,
+    ),
+    uqCompanyPeriodMetricSource: uniqueIndex('uq_kpis_company_period_metric_source').on(
+      t.companyId,
+      t.period,
+      t.metric,
+      t.source,
+    ),
+  }),
+);
+
+export const companyValuations = pgTable(
+  'company_valuations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    firmId: uuid('firm_id')
+      .notNull()
+      .references(() => firms.id),
+    companyId: uuid('company_id').notNull(),
+    asOf: date('as_of').notNull(),
+    fairValueMinor: money('fair_value_minor').notNull(),
+    currency: text('currency').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uqCompanyAsOf: uniqueIndex('uq_company_valuations_company_asof').on(t.companyId, t.asOf),
+  }),
+);
+
 export const schema = {
   firms,
   memberships,
@@ -623,4 +722,8 @@ export const schema = {
   sourceDocuments,
   reconciliationMatches,
   reconExceptions,
+  portfolioCompanies,
+  investments,
+  kpis,
+  companyValuations,
 };
