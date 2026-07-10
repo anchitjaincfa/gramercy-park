@@ -62,18 +62,18 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
 
 Built in public, phase by phase. Track progress in [`docs/PLAN.md`](docs/PLAN.md).
 
-| Phase | Scope                                          | Status  |
-| ----: | ---------------------------------------------- | ------- |
-|     0 | Foundation, monorepo, docs, CI                 | ✅ done |
-|     1 | Double-entry ledger core (+ tenancy/RLS/audit) | ✅ done |
-|    2a | Commitments & capital calls                    | ✅ done |
-|    2b | Distributions, fees & capital accounts         | ✅ done |
-|    2c | Valuation, periods & NAV                       | ✅ done |
-|     3 | Reconciliation engine                          | ✅ done |
-|     4 | AI agent layer                                 | ✅ done |
-|     5 | Portfolio intelligence                         | ✅ done |
-|     6 | GP console + LP portal (Next.js apps)          | ✅ done |
-|     7 | Enterprise hardening & deploy                  | ⏳      |
+| Phase | Scope                                               | Status  |
+| ----: | --------------------------------------------------- | ------- |
+|     0 | Foundation, monorepo, docs, CI                      | ✅ done |
+|     1 | Double-entry ledger core (+ tenancy/RLS/audit)      | ✅ done |
+|    2a | Commitments & capital calls                         | ✅ done |
+|    2b | Distributions, fees & capital accounts              | ✅ done |
+|    2c | Valuation, periods & NAV                            | ✅ done |
+|     3 | Reconciliation engine                               | ✅ done |
+|     4 | AI agent layer                                      | ✅ done |
+|     5 | Portfolio intelligence                              | ✅ done |
+|     6 | GP console + LP portal (Next.js apps)               | ✅ done |
+|     7 | Enterprise hardening (consolidation, RBAC) + deploy | ✅ done |
 
 ## License
 

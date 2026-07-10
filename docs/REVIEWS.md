@@ -305,3 +305,25 @@ constants are typed, so no runtime risk; a discriminated-union render is a futur
 
 **Verdict:** both apps `tsc` + `next build` clean; 213 tests + 2 app typechecks green. Merged;
 Phase 6 complete — the platform now has a visible, deployable UI.
+
+---
+
+## Gate 7.1 — Phase 7 (consolidation, RBAC, deploy config)
+
+**Built by 2 parallel builder agents** (consolidation ∥ RBAC). **Reviewer:** `codex exec`.
+
+**RBAC** (`@gramercy/rbac`): Codex found **no bypass** — permission matrix, threshold-gated approval,
+and segregation-of-duties (preparer ≠ approver) all sound.
+
+**Consolidation** (`@gramercy/consolidation`) — **4 confirmed bugs → resolution:**
+
+1. Elimination check was too weak — any two accounts that happened to offset could be eliminated
+   (even real cash/expense). → **Fixed:** a pair must be an **asset** due-from vs a **liability**
+   due-to in **different entities**, no account eliminated twice.
+2. `eliminatedMinor` used unguarded `+=` (safe-integer loss). → **Fixed:** `checkedAddMinor`.
+3. Duplicate `entityId` double-counted the group. → **Fixed:** duplicates rejected.
+4. Unknown accounts were silently dropped, and the group-nets-zero invariant was returned as a
+   boolean instead of enforced. → **Fixed:** unknown accounts throw; a non-zero group throws.
+
+**Verdict:** 237/237 tests pass, typecheck clean; both apps build. Merged; **Phase 7 complete —
+Gramercy Park is feature-complete across all 7 phases.** (Deploy: `docs/DEPLOY.md`.)
