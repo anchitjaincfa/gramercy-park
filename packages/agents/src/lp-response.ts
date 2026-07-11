@@ -25,7 +25,8 @@ const SYSTEM_PROMPT = [
   '- NEVER invent numbers, dates, or commitments, and NEVER reference any other LP or fund.',
   '- If the question cannot be answered from the provided facts, say so plainly in the draft',
   '  and lower your confidence rather than guessing.',
-  '- For every claim in the draft, cite which lpFact it relies on via the evidence array.',
+  '- For every claim in the draft, cite which lpFact it relies on via the evidence array,',
+  '  setting each evidence sourceRef to "lpFact:<label>" using a label shown below.',
 ].join(' ');
 
 // Strict tool schema — guarantees the model returns exactly this shape.
@@ -71,7 +72,7 @@ const REPLY_TOOL = {
 };
 
 function renderUserMessage(ctx: LpResponseContext): string {
-  const facts = ctx.lpFacts.map((f) => `  ${f.label}: ${f.value}`).join('\n');
+  const facts = ctx.lpFacts.map((f) => `  [lpFact:${f.label}] ${f.label}: ${f.value}`).join('\n');
   return [
     `LP: ${ctx.lpName} (lpId: ${ctx.lpId})`,
     '',
@@ -154,6 +155,22 @@ export async function proposeLpReply(
     throw new Error(
       `lp-response tenant mismatch: reply is for "${p.lpId}" but the request was for "${ctx.lpId}"`,
     );
+  }
+  // Evidence grounding: every citation must point at a fact we actually supplied.
+  // The prompt asks the model to cite "lpFact:<label>"; we ENFORCE it so a
+  // fabricated citation (a fact that was never provided) is rejected, not sent.
+  if (!Array.isArray(raw.evidence)) {
+    throw new Error('lp-response proposer returned a malformed evidence array');
+  }
+  const allowedRefs = new Set(ctx.lpFacts.map((f) => `lpFact:${f.label}`));
+  for (const e of raw.evidence) {
+    if (typeof e?.sourceRef !== 'string' || !allowedRefs.has(e.sourceRef)) {
+      throw new Error(
+        `lp-response evidence cites ungrounded source "${String(
+          e?.sourceRef,
+        )}"; every sourceRef must reference a provided lpFact ("lpFact:<label>")`,
+      );
+    }
   }
   return {
     kind: 'lp_reply',

@@ -86,3 +86,20 @@ describe('proposeLpReply — tenant isolation (Codex Gate 4.2)', () => {
     await expect(proposeLpReply(CTX, fixtureProposer(crossLp))).rejects.toThrow(/tenant mismatch/);
   });
 });
+
+describe('proposeLpReply — evidence grounding (adversarial-review fix)', () => {
+  it('throws if evidence cites a fact that was never provided', async () => {
+    const ungrounded: RawLpReplyProposal = {
+      ...REPLY,
+      evidence: [
+        { field: 'payload.draftReply', sourceRef: 'lpFact:Distributions', quote: '$999,999' },
+      ],
+    };
+    await expect(proposeLpReply(CTX, fixtureProposer(ungrounded))).rejects.toThrow(/ungrounded/);
+  });
+
+  it('accepts evidence that references only provided lpFacts', async () => {
+    const p = await proposeLpReply(CTX, fixtureProposer(REPLY));
+    expect(p.evidence.every((e) => e.sourceRef.startsWith('lpFact:'))).toBe(true);
+  });
+});
