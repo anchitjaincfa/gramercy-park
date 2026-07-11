@@ -11,6 +11,7 @@ import {
   date,
   uniqueIndex,
   index,
+  foreignKey,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -112,6 +113,12 @@ export const entities = pgTable(
   },
   (t) => ({
     byFirm: index('idx_entities_firm').on(t.firmId),
+    // self-referential composite FK: a child entity's parent must live in the same firm
+    fkParentFirm: foreignKey({
+      columns: [t.parentId, t.firmId],
+      foreignColumns: [t.id, t.firmId],
+      name: 'fk_entities_parent_firm',
+    }),
   }),
 );
 
@@ -136,6 +143,11 @@ export const accounts = pgTable(
     uqIdEntityFirm: uniqueIndex('uq_accounts_id_entity_firm').on(t.id, t.entityId, t.firmId),
     // composite target so valuations can firm-pin an investment account (Phase 2c)
     uqIdFirm: uniqueIndex('uq_accounts_id_firm').on(t.id, t.firmId),
+    fkEntityFirm: foreignKey({
+      columns: [t.entityId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_accounts_entity_firm',
+    }),
   }),
 );
 
@@ -184,6 +196,22 @@ export const journals = pgTable(
     byEntity: index('idx_journals_entity').on(t.entityId),
     uqReversalOf: uniqueIndex('uq_journals_reversal_of').on(t.reversalOf),
     uqIdEntityFirm: uniqueIndex('uq_journals_id_entity_firm').on(t.id, t.entityId, t.firmId),
+    fkBatchFirm: foreignKey({
+      columns: [t.batchId, t.firmId],
+      foreignColumns: [journalBatches.id, journalBatches.firmId],
+      name: 'fk_journals_batch_firm',
+    }),
+    fkEntityFirm: foreignKey({
+      columns: [t.entityId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_journals_entity_firm',
+    }),
+    // self-referential composite FK: a reversal journal firm-pins the one it reverses
+    fkReversalFirm: foreignKey({
+      columns: [t.reversalOf, t.firmId],
+      foreignColumns: [t.id, t.firmId],
+      name: 'fk_journals_reversal_firm',
+    }),
   }),
 );
 
@@ -210,6 +238,16 @@ export const journalLines = pgTable(
   (t) => ({
     byJournal: index('idx_lines_journal').on(t.journalId),
     byAccount: index('idx_lines_account').on(t.accountId),
+    fkJournal: foreignKey({
+      columns: [t.journalId, t.entityId, t.firmId],
+      foreignColumns: [journals.id, journals.entityId, journals.firmId],
+      name: 'fk_line_journal',
+    }),
+    fkAccount: foreignKey({
+      columns: [t.accountId, t.entityId, t.firmId],
+      foreignColumns: [accounts.id, accounts.entityId, accounts.firmId],
+      name: 'fk_line_account',
+    }),
   }),
 );
 
@@ -278,6 +316,11 @@ export const shareClasses = pgTable(
     // composite targets so commitments can firm-pin AND fund-pin a share class
     uqIdFirm: uniqueIndex('uq_share_classes_id_firm').on(t.id, t.firmId),
     uqIdFundFirm: uniqueIndex('uq_share_classes_id_fund_firm').on(t.id, t.fundId, t.firmId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_share_classes_fund_firm',
+    }),
   }),
 );
 
@@ -299,6 +342,21 @@ export const commitments = pgTable(
   },
   (t) => ({
     uqFundLpClass: uniqueIndex('uq_commitments_fund_lp_class').on(t.fundId, t.lpId, t.classId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_commitments_fund_firm',
+    }),
+    fkLpFirm: foreignKey({
+      columns: [t.lpId, t.firmId],
+      foreignColumns: [lps.id, lps.firmId],
+      name: 'fk_commitments_lp_firm',
+    }),
+    fkClassFundFirm: foreignKey({
+      columns: [t.classId, t.fundId, t.firmId],
+      foreignColumns: [shareClasses.id, shareClasses.fundId, shareClasses.firmId],
+      name: 'fk_commitments_class_fund_firm',
+    }),
   }),
 );
 
@@ -323,6 +381,11 @@ export const capitalCalls = pgTable(
     uqFundNumber: uniqueIndex('uq_capital_calls_fund_number').on(t.fundId, t.number),
     // composite target so allocations can firm-pin a call
     uqIdFirm: uniqueIndex('uq_capital_calls_id_firm').on(t.id, t.firmId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_capital_calls_fund_firm',
+    }),
   }),
 );
 
@@ -341,6 +404,16 @@ export const capitalCallAllocations = pgTable(
   },
   (t) => ({
     uqCallLpKind: uniqueIndex('uq_call_alloc_call_lp_kind').on(t.callId, t.lpId, t.kind),
+    fkCallFirm: foreignKey({
+      columns: [t.callId, t.firmId],
+      foreignColumns: [capitalCalls.id, capitalCalls.firmId],
+      name: 'fk_call_alloc_call_firm',
+    }),
+    fkLpFirm: foreignKey({
+      columns: [t.lpId, t.firmId],
+      foreignColumns: [lps.id, lps.firmId],
+      name: 'fk_call_alloc_lp_firm',
+    }),
   }),
 );
 
@@ -371,6 +444,11 @@ export const distributions = pgTable(
     uqFundNumber: uniqueIndex('uq_distributions_fund_number').on(t.fundId, t.number),
     // composite target so allocations can firm-pin a distribution
     uqIdFirm: uniqueIndex('uq_distributions_id_firm').on(t.id, t.firmId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_distributions_fund_firm',
+    }),
   }),
 );
 
@@ -388,6 +466,16 @@ export const distributionAllocations = pgTable(
   },
   (t) => ({
     uqDistributionLp: uniqueIndex('uq_dist_alloc_distribution_lp').on(t.distributionId, t.lpId),
+    fkDistributionFirm: foreignKey({
+      columns: [t.distributionId, t.firmId],
+      foreignColumns: [distributions.id, distributions.firmId],
+      name: 'fk_dist_alloc_distribution_firm',
+    }),
+    fkLpFirm: foreignKey({
+      columns: [t.lpId, t.firmId],
+      foreignColumns: [lps.id, lps.firmId],
+      name: 'fk_dist_alloc_lp_firm',
+    }),
   }),
 );
 
@@ -407,6 +495,16 @@ export const mgmtFeeSchedules = pgTable(
   },
   (t) => ({
     byFirm: index('idx_mgmt_fee_schedules_firm').on(t.firmId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_mgmt_fee_fund_firm',
+    }),
+    fkClassFundFirm: foreignKey({
+      columns: [t.classId, t.fundId, t.firmId],
+      foreignColumns: [shareClasses.id, shareClasses.fundId, shareClasses.firmId],
+      name: 'fk_mgmt_fee_class_fund_firm',
+    }),
   }),
 );
 
@@ -435,6 +533,11 @@ export const accountingPeriods = pgTable(
   (t) => ({
     // the entity must live in the same firm as the period
     uqEntityPeriod: uniqueIndex('uq_accounting_periods_entity_period').on(t.entityId, t.period),
+    fkEntityFirm: foreignKey({
+      columns: [t.entityId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_accounting_periods_entity_firm',
+    }),
   }),
 );
 
@@ -462,6 +565,17 @@ export const valuations = pgTable(
     ),
     // composite target so a valuation can firm-pin the one it supersedes
     uqIdFirm: uniqueIndex('uq_valuations_id_firm').on(t.id, t.firmId),
+    fkAccountFirm: foreignKey({
+      columns: [t.investmentAccountId, t.firmId],
+      foreignColumns: [accounts.id, accounts.firmId],
+      name: 'fk_valuations_account_firm',
+    }),
+    // self-referential composite FK: a superseding valuation firm-pins its predecessor
+    fkSupersededFirm: foreignKey({
+      columns: [t.supersededBy, t.firmId],
+      foreignColumns: [t.id, t.firmId],
+      name: 'fk_valuations_superseded_firm',
+    }),
   }),
 );
 
@@ -483,6 +597,11 @@ export const navSnapshots = pgTable(
     uqFundAsOf: uniqueIndex('uq_nav_snapshots_fund_asof').on(t.fundId, t.asOf),
     // composite target so LP shares can firm-pin a snapshot
     uqIdFirm: uniqueIndex('uq_nav_snapshots_id_firm').on(t.id, t.firmId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_nav_snapshots_fund_firm',
+    }),
   }),
 );
 
@@ -500,6 +619,16 @@ export const navSnapshotLpShares = pgTable(
   },
   (t) => ({
     uqSnapshotLp: uniqueIndex('uq_nav_snapshot_lp_shares_snapshot_lp').on(t.snapshotId, t.lpId),
+    fkSnapshotFirm: foreignKey({
+      columns: [t.snapshotId, t.firmId],
+      foreignColumns: [navSnapshots.id, navSnapshots.firmId],
+      name: 'fk_nav_snap_lp_snapshot_firm',
+    }),
+    fkLpFirm: foreignKey({
+      columns: [t.lpId, t.firmId],
+      foreignColumns: [lps.id, lps.firmId],
+      name: 'fk_nav_snap_lp_lp_firm',
+    }),
   }),
 );
 
@@ -535,6 +664,11 @@ export const bankTransactions = pgTable(
     ),
     // composite target so matches can firm-pin a bank transaction
     uqIdFirm: uniqueIndex('uq_bank_transactions_id_firm').on(t.id, t.firmId),
+    fkEntityFirm: foreignKey({
+      columns: [t.entityId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_bank_transactions_entity_firm',
+    }),
   }),
 );
 
@@ -556,6 +690,11 @@ export const sourceDocuments = pgTable(
   (t) => ({
     // composite target so matches can firm-pin a source document
     uqIdFirm: uniqueIndex('uq_source_documents_id_firm').on(t.id, t.firmId),
+    fkEntityFirm: foreignKey({
+      columns: [t.entityId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_source_documents_entity_firm',
+    }),
   }),
 );
 
@@ -579,6 +718,21 @@ export const reconciliationMatches = pgTable(
     uqBankTransaction: uniqueIndex('uq_reconciliation_matches_bank_transaction').on(
       t.bankTransactionId,
     ),
+    fkBankTxnFirm: foreignKey({
+      columns: [t.bankTransactionId, t.firmId],
+      foreignColumns: [bankTransactions.id, bankTransactions.firmId],
+      name: 'fk_reconciliation_matches_bank_txn_firm',
+    }),
+    fkDocumentFirm: foreignKey({
+      columns: [t.documentId, t.firmId],
+      foreignColumns: [sourceDocuments.id, sourceDocuments.firmId],
+      name: 'fk_reconciliation_matches_document_firm',
+    }),
+    fkJournalFirm: foreignKey({
+      columns: [t.ledgerJournalId, t.firmId],
+      foreignColumns: [journals.id, journals.firmId],
+      name: 'fk_reconciliation_matches_journal_firm',
+    }),
   }),
 );
 
@@ -599,6 +753,21 @@ export const reconExceptions = pgTable(
   },
   (t) => ({
     byFirm: index('idx_recon_exceptions_firm').on(t.firmId),
+    fkBankTxnFirm: foreignKey({
+      columns: [t.bankTransactionId, t.firmId],
+      foreignColumns: [bankTransactions.id, bankTransactions.firmId],
+      name: 'fk_recon_exceptions_bank_txn_firm',
+    }),
+    fkDocumentFirm: foreignKey({
+      columns: [t.documentId, t.firmId],
+      foreignColumns: [sourceDocuments.id, sourceDocuments.firmId],
+      name: 'fk_recon_exceptions_document_firm',
+    }),
+    fkJournalFirm: foreignKey({
+      columns: [t.ledgerJournalId, t.firmId],
+      foreignColumns: [journals.id, journals.firmId],
+      name: 'fk_recon_exceptions_journal_firm',
+    }),
   }),
 );
 
@@ -650,6 +819,16 @@ export const investments = pgTable(
   (t) => ({
     // composite target so downstream rows can firm-pin an investment
     uqIdFirm: uniqueIndex('uq_investments_id_firm').on(t.id, t.firmId),
+    fkFundFirm: foreignKey({
+      columns: [t.fundId, t.firmId],
+      foreignColumns: [entities.id, entities.firmId],
+      name: 'fk_investments_fund_firm',
+    }),
+    fkCompanyFirm: foreignKey({
+      columns: [t.companyId, t.firmId],
+      foreignColumns: [portfolioCompanies.id, portfolioCompanies.firmId],
+      name: 'fk_investments_company_firm',
+    }),
   }),
 );
 
@@ -676,6 +855,11 @@ export const kpis = pgTable(
       t.metric,
       t.source,
     ),
+    fkCompanyFirm: foreignKey({
+      columns: [t.companyId, t.firmId],
+      foreignColumns: [portfolioCompanies.id, portfolioCompanies.firmId],
+      name: 'fk_kpis_company_firm',
+    }),
   }),
 );
 
@@ -694,6 +878,11 @@ export const companyValuations = pgTable(
   },
   (t) => ({
     uqCompanyAsOf: uniqueIndex('uq_company_valuations_company_asof').on(t.companyId, t.asOf),
+    fkCompanyFirm: foreignKey({
+      columns: [t.companyId, t.firmId],
+      foreignColumns: [portfolioCompanies.id, portfolioCompanies.firmId],
+      name: 'fk_company_valuations_company_firm',
+    }),
   }),
 );
 
