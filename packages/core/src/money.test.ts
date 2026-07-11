@@ -92,6 +92,35 @@ describe('allocate — largest-remainder', () => {
     expect(() => allocate(money(100, 'USD'), [0, 0])).toThrow();
   });
 
+  it('places the leftover cent exactly at near-2^53 scale (Decimal precision fix)', () => {
+    // Exact largest-remainder reference computed in BigInt (no floating error).
+    // The default 20-significant-digit Decimal truncates `total×weight/sum` here
+    // (operands are ~16 digits, the product ~32), mis-assigning the leftover.
+    const bigAllocate = (total: bigint, weights: bigint[]): number[] => {
+      const sum = weights.reduce((a, b) => a + b, 0n);
+      const bases = weights.map((w) => (total * w) / sum);
+      const out = [...bases];
+      let leftover = total - bases.reduce((a, b) => a + b, 0n);
+      const order = weights
+        .map((w, i) => ({ i, rem: (total * w) % sum }))
+        .sort((a, b) => (a.rem === b.rem ? a.i - b.i : a.rem < b.rem ? 1 : -1));
+      for (const { i } of order) {
+        if (leftover <= 0n) break;
+        out[i] += 1n;
+        leftover -= 1n;
+      }
+      return out.map((n) => Number(n));
+    };
+
+    const total = 9_007_199_254_740_991; // Number.MAX_SAFE_INTEGER
+    const weightsBig = [3_000_000_000_000_001n, 3_000_000_000_000_000n, 3_007_199_254_740_990n];
+    const weights = weightsBig.map((w) => w.toString()); // exact string weights
+    const parts = allocate(money(total, 'USD'), weights).map((p) => p.amount);
+
+    expect(parts.reduce((a, b) => a + b, 0)).toBe(total); // no cent lost
+    expect(parts).toEqual(bigAllocate(BigInt(total), weightsBig)); // exact placement
+  });
+
   it('allocateEven splits and sums to the whole', () => {
     fc.assert(
       fc.property(

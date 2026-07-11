@@ -18,7 +18,8 @@
     "@anthropic-ai/sdk": "^0.68.0",
     "@gramercy/core": "*",
     "@gramercy/ledger": "*",
-    "@gramercy/fund-admin": "*"
+    "@gramercy/fund-admin": "*",
+    "@gramercy/rbac": "*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -61,6 +61,10 @@ async function main(): Promise<void> {
     sourceType: 'bill',
     sourceId: 'WM-2048',
     idempotencyKey: 'bill:WM-2048',
+    preparerUserId: 'ai-agent',
+    approverUserId: 'controller',
+    approverRole: 'reviewer',
+    approvalPolicies: [{ role: 'reviewer', maxAmountMinor: null }],
   });
 
   if (isOk(result)) {

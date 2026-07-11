@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { isOk, isErr } from '@gramercy/core';
 import type { Account } from '@gramercy/ledger';
 import { proposeJournalEntry } from './journal-entry';
-import { approveJournalEntry } from './review-queue';
+import { approveJournalEntry, type ApproveContext } from './review-queue';
 import { DEFAULT_MODEL } from './client';
 import type { JournalEntryContext, JournalEntryProposer, RawJournalEntryProposal } from './types';
 
@@ -50,11 +50,15 @@ const BALANCED: RawJournalEntryProposal = {
   model: 'claude-opus-4-8',
 };
 
-const approveCtx = {
+const approveCtx: ApproveContext = {
   accounts: ACCOUNTS,
   sourceType: 'bill',
   sourceId: 'INV-1',
   idempotencyKey: 'bill:INV-1',
+  preparerUserId: 'ai-agent',
+  approverUserId: 'controller',
+  approverRole: 'reviewer',
+  approvalPolicies: [{ role: 'reviewer', maxAmountMinor: null }],
 };
 
 describe('proposeJournalEntry', () => {
@@ -161,5 +165,36 @@ describe('approveJournalEntry — the HITL boundary', () => {
     const result = approveJournalEntry(p, approveCtx);
     expect(isErr(result)).toBe(true);
     if (isErr(result)) expect(result.error[0]!.code).toBe('MALFORMED_PAYLOAD');
+  });
+});
+
+describe('approveJournalEntry — RBAC enforcement (adversarial-review fix)', () => {
+  it('rejects self-approval (segregation of duties)', async () => {
+    const p = await proposeJournalEntry(CTX, fixtureProposer(BALANCED));
+    const r = approveJournalEntry(p, { ...approveCtx, preparerUserId: 'u1', approverUserId: 'u1' });
+    expect(isErr(r)).toBe(true);
+    if (isErr(r)) expect(r.error[0]!.code).toBe('SEGREGATION_VIOLATION');
+  });
+
+  it('rejects approval above the role threshold', async () => {
+    // BALANCED posts 50,000 minor; a $100 (10,000 minor) reviewer cap must block it.
+    const p = await proposeJournalEntry(CTX, fixtureProposer(BALANCED));
+    const r = approveJournalEntry(p, {
+      ...approveCtx,
+      approvalPolicies: [{ role: 'reviewer', maxAmountMinor: 10_000 }],
+    });
+    expect(isErr(r)).toBe(true);
+    if (isErr(r)) expect(r.error[0]!.code).toBe('UNAUTHORIZED');
+  });
+
+  it('rejects a role that lacks approve permission (e.g. accountant)', async () => {
+    const p = await proposeJournalEntry(CTX, fixtureProposer(BALANCED));
+    const r = approveJournalEntry(p, {
+      ...approveCtx,
+      approverRole: 'accountant',
+      approvalPolicies: [{ role: 'accountant', maxAmountMinor: null }],
+    });
+    expect(isErr(r)).toBe(true);
+    if (isErr(r)) expect(r.error[0]!.code).toBe('UNAUTHORIZED');
   });
 });

@@ -1,5 +1,11 @@
 import Decimal from 'decimal.js';
 
+// High-precision Decimal for allocation math. The default 20 significant digits
+// can truncate `magnitude × weight / weightSum` at large (near-2^53) scale,
+// mis-assigning the leftover cent; 80 digits resolves the exact remainder for any
+// realistic minor-unit magnitude.
+const HP = Decimal.clone({ precision: 80 });
+
 declare const MONEY_BRAND: unique symbol;
 
 /**
@@ -95,14 +101,14 @@ export function allocate(total: Money, weights: readonly Decimal.Value[]): Money
   if (weights.length === 0) throw new Error('allocate requires at least one weight');
 
   const decWeights = weights.map((w, i) => {
-    const d = new Decimal(w);
+    const d = new HP(w);
     if (d.isNegative() || !d.isFinite()) {
       throw new Error(`allocate weights must be finite and non-negative; weights[${i}] = ${w}`);
     }
     return d;
   });
 
-  const weightSum = decWeights.reduce((acc, w) => acc.plus(w), new Decimal(0));
+  const weightSum = decWeights.reduce((acc, w) => acc.plus(w), new HP(0));
   if (weightSum.isZero()) throw new Error('allocate requires weights that are not all zero');
 
   const sign = total.amount < 0 ? -1 : 1;
@@ -113,7 +119,7 @@ export function allocate(total: Money, weights: readonly Decimal.Value[]): Money
   const remainders: Decimal[] = [];
   let allocated = 0;
   for (let i = 0; i < decWeights.length; i++) {
-    const exact = new Decimal(magnitude).times(decWeights[i]!).dividedBy(weightSum);
+    const exact = new HP(magnitude).times(decWeights[i]!).dividedBy(weightSum);
     const base = exact.floor();
     bases.push(base.toNumber());
     remainders.push(exact.minus(base));

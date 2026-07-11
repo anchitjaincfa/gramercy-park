@@ -9,6 +9,12 @@ import {
 } from '@gramercy/ledger';
 import type { JournalEntryProposal } from './types';
 import { JOURNAL_ENTRY_SCHEMA_VERSION } from './journal-entry';
+import {
+  type Role,
+  type ApprovalPolicy,
+  canApproveAmount,
+  isSegregationOk,
+} from '@gramercy/rbac';
 
 /**
  * The human-in-the-loop boundary (docs/ARCHITECTURE.md §5). An approved proposal
@@ -25,6 +31,8 @@ export interface ApprovalError {
     | 'DUPLICATE_ACCOUNT_CODE'
     | 'UNKNOWN_ACCOUNT_CODE'
     | 'NON_POSITIVE_AMOUNT'
+    | 'SEGREGATION_VIOLATION'
+    | 'UNAUTHORIZED'
     | 'LEDGER';
   readonly message: string;
   readonly lineIndex?: number;
@@ -36,6 +44,14 @@ export interface ApproveContext {
   readonly sourceType: string;
   readonly sourceId: string;
   readonly idempotencyKey: string;
+  /** Who authored the proposal (or triggered the AI). */
+  readonly preparerUserId: string;
+  /** The human approving — must differ from the preparer (segregation of duties). */
+  readonly approverUserId: string;
+  /** The approver's role, checked against the approval threshold. */
+  readonly approverRole: Role;
+  /** Per-role approval thresholds (from @gramercy/rbac). */
+  readonly approvalPolicies: readonly ApprovalPolicy[];
 }
 
 /**
@@ -120,6 +136,29 @@ export function approveJournalEntry(
   });
 
   if (errors.length > 0) return err(errors);
+
+  // Authorization (RBAC) — the AI prepares, but a HUMAN with the right role and
+  // within their approval threshold must approve, and may not approve their own
+  // preparation (segregation of duties).
+  if (!isSegregationOk(ctx.preparerUserId, ctx.approverUserId)) {
+    return err([
+      {
+        code: 'SEGREGATION_VIOLATION',
+        message: `preparer and approver must differ (both "${ctx.approverUserId}")`,
+      },
+    ]);
+  }
+  const journalTotalMinor = lines
+    .filter((l) => l.side === 'debit')
+    .reduce((sum, l) => sum + l.amount.amount, 0);
+  if (!canApproveAmount(ctx.approverRole, journalTotalMinor, ctx.approvalPolicies)) {
+    return err([
+      {
+        code: 'UNAUTHORIZED',
+        message: `role "${ctx.approverRole}" may not approve ${journalTotalMinor} minor units`,
+      },
+    ]);
+  }
 
   const journal: JournalInput = {
     entityId: payload.entityId,
