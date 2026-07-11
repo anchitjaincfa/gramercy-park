@@ -1,3 +1,4 @@
+import { moicBps } from '@gramercy/portfolio';
 import { PageHeader, Card, CardHeader, StatTile, Badge, TableScroll } from '@/components/ui';
 import { formatUSD, formatUSDCompact, formatBps, formatMoic } from '@/lib/format';
 import { portfolio, companiesById, investments } from '@/lib/seed';
@@ -7,10 +8,8 @@ export default function PortfolioPage() {
 
   const rows = [...portfolio.positions].sort((a, b) => b.stakeValueMinor - a.stakeValueMinor);
 
-  const blendedMoicBps =
-    portfolio.totalCostMinor > 0
-      ? Math.round((portfolio.totalFairValueMinor / portfolio.totalCostMinor) * 10000)
-      : 0;
+  // Exact BigInt MOIC — never float division, which would drift at large values.
+  const blendedMoicBps = moicBps(portfolio.totalFairValueMinor, portfolio.totalCostMinor);
 
   return (
     <div>

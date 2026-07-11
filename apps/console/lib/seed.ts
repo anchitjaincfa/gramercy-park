@@ -6,7 +6,7 @@
  * actual accounting core rather than a mock of it:
  *
  *   - allocateCapitalCall  (@gramercy/fund-admin)  — pro-rata capital call
- *   - runChecks / ALL_CHECKS (@gramercy/fund-admin) — the 34 pre-post checks
+ *   - runChecks / ALL_CHECKS (@gramercy/fund-admin) — the 36 pre-post checks
  *   - buildCapitalAccounts (@gramercy/fund-admin)   — LP capital accounts
  *   - computeNav / computeNavPerLp (@gramercy/fund-admin) — NAV from posted GL
  *   - rollupPortfolio (@gramercy/portfolio)         — equity-pickup rollup
@@ -154,7 +154,7 @@ export const totalCalledToDateMinor =
   Object.values(priorCalledByLp).reduce((s, v) => s + v, 0) + CALL_TOTAL;
 export const uncalledCommitmentMinor = totalCommittedMinor - totalCalledToDateMinor;
 
-// The 34 health checks, run against a fully-built context.
+// The 36 health checks, run against a fully-built context.
 const callContext: CapitalCallContext = {
   call: capitalCall,
   commitments,
@@ -398,10 +398,22 @@ export const investments: Investment[] = [
 // Company-level fair values (whole-company equity value). Fund stake =
 // ownershipBps × fair value, computed inside rollupPortfolio.
 const companyValuations: CompanyValuation[] = [
-  { companyId: 'co-northwind', asOf: AS_OF, fairValueMinor: usdMillions(50), currency: CURRENCY },
-  { companyId: 'co-vela', asOf: AS_OF, fairValueMinor: usdMillions(80), currency: CURRENCY },
-  { companyId: 'co-lumen', asOf: AS_OF, fairValueMinor: usdMillions(30), currency: CURRENCY },
-  { companyId: 'co-cobalt', asOf: AS_OF, fairValueMinor: usdMillions(50), currency: CURRENCY },
+  { firmId: FIRM_ID, companyId: 'co-northwind', asOf: AS_OF, fairValueMinor: usdMillions(50), currency: CURRENCY }, // prettier-ignore
+  {
+    firmId: FIRM_ID,
+    companyId: 'co-vela',
+    asOf: AS_OF,
+    fairValueMinor: usdMillions(80),
+    currency: CURRENCY,
+  },
+  {
+    firmId: FIRM_ID,
+    companyId: 'co-lumen',
+    asOf: AS_OF,
+    fairValueMinor: usdMillions(30),
+    currency: CURRENCY,
+  },
+  { firmId: FIRM_ID, companyId: 'co-cobalt', asOf: AS_OF, fairValueMinor: usdMillions(50), currency: CURRENCY }, // prettier-ignore
 ];
 
 export const valuationsByCompany = new Map(companyValuations.map((v) => [v.companyId, v]));
@@ -644,7 +656,10 @@ export const recentActivity: ActivityItem[] = [
   {
     date: '2026-07-05',
     title: 'Capital call #2 funded',
-    detail: `${lps.length} LP wires totaling $20.0M received and matched.`,
+    // Consistent with reconRows[SVB-2026-07-05-INBOUND], which is an OPEN
+    // exception (AI proposed the match; a human has not yet approved it) — so we
+    // must not claim it is already "matched".
+    detail: `${lps.length} LP wires totaling $${(CALL_TOTAL / 100_000_000).toFixed(1)}M received; AI proposed a match — awaiting expert review.`,
     tag: 'call',
   },
   {
@@ -656,13 +671,15 @@ export const recentActivity: ActivityItem[] = [
   {
     date: '2026-06-30',
     title: 'NAV snapshot computed',
-    detail: `Fund NAV of ${'$24.02M'} as of quarter close from the posted GL.`,
+    // Derived from the posted GL (computeNav), never hardcoded — so this line can
+    // never drift from the number the NAV page actually renders.
+    detail: `Fund NAV of $${(navTotalMinor / 100_000_000).toFixed(2)}M as of quarter close from the posted GL.`,
     tag: 'nav',
   },
   {
     date: '2026-06-30',
     title: 'Portfolio marks updated',
-    detail: '4 positions re-valued; unrealized gain of $4.2M recognized.',
+    detail: `${portfolio.positions.length} positions re-valued; unrealized gain of $${(portfolio.totalUnrealizedGainMinor / 100_000_000).toFixed(1)}M recognized.`,
     tag: 'portfolio',
   },
   {

@@ -73,6 +73,24 @@ function moicBpsExact(stakeValueMinorAmt: number, costMinor: number): number {
 }
 
 /**
+ * MOIC in basis points for an aggregate `stakeValueMinorAmt` against `costMinor`,
+ * using exact BigInt math (never floating point). Returns 0 when cost is 0. This
+ * is the public entry point UIs should use for a blended/portfolio-level MOIC so
+ * they never re-derive it with lossy float division.
+ */
+export function moicBps(stakeValueMinorAmt: number, costMinor: number): number {
+  if (!Number.isSafeInteger(stakeValueMinorAmt) || stakeValueMinorAmt < 0) {
+    throw new Error(
+      `moicBps requires a non-negative safe integer stake, got ${stakeValueMinorAmt}`,
+    );
+  }
+  if (!Number.isSafeInteger(costMinor) || costMinor < 0) {
+    throw new Error(`moicBps requires a non-negative safe integer cost, got ${costMinor}`);
+  }
+  return costMinor > 0 ? moicBpsExact(stakeValueMinorAmt, costMinor) : 0;
+}
+
+/**
  * Compute the position of one `investment` at a `valuation` point.
  *
  * - stakeValue = `stakeValueMinor(ownershipBps, fairValueMinor)`
@@ -91,6 +109,13 @@ export function computePosition(investment: Investment, valuation: CompanyValuat
   if (investment.companyId !== valuation.companyId) {
     throw new Error(
       `computePosition company mismatch: investment ${investment.companyId} vs valuation ${valuation.companyId}`,
+    );
+  }
+  // Tenant isolation: never apply another firm's mark to this firm's investment,
+  // even if the two share a companyId.
+  if (investment.firmId !== valuation.firmId) {
+    throw new Error(
+      `computePosition firm mismatch: investment ${investment.firmId} vs valuation ${valuation.firmId}`,
     );
   }
   if (!Number.isSafeInteger(investment.costMinor) || investment.costMinor < 0) {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { stakeValueMinor, computePosition, rollupPortfolio } from './ownership';
+import { stakeValueMinor, computePosition, rollupPortfolio, moicBps } from './ownership';
 import type { Investment, CompanyValuation } from './types';
 
 const USD = 'USD';
@@ -23,6 +23,7 @@ function investment(overrides: Partial<Investment> = {}): Investment {
 
 function valuation(overrides: Partial<CompanyValuation> = {}): CompanyValuation {
   return {
+    firmId: 'firm-1',
     companyId: 'co-1',
     asOf: '2025-06-30',
     fairValueMinor: 10_000_000_00, // $10,000,000
@@ -50,6 +51,24 @@ describe('stakeValueMinor', () => {
   it('rejects negative or unsafe fair value', () => {
     expect(() => stakeValueMinor(1_000, -1, USD)).toThrow();
     expect(() => stakeValueMinor(1_000, Number.MAX_SAFE_INTEGER + 1, USD)).toThrow();
+  });
+});
+
+describe('moicBps (exact, no float)', () => {
+  it('is 20000 bps for a 2.0x and 0 when cost is 0', () => {
+    expect(moicBps(2_000_000_00, 1_000_000_00)).toBe(20_000);
+    expect(moicBps(2_000_000_00, 0)).toBe(0);
+  });
+
+  it('rounds half-up and stays exact at large minor-unit values', () => {
+    expect(moicBps(2_000_000_00, 3_000_000_00)).toBe(6_667); // round(2/3 × 10000)
+    // A float path (stake/cost×10000) would drift here; BigInt stays exact.
+    expect(moicBps(9_000_000_000_00, 3_000_000_000_00)).toBe(30_000);
+  });
+
+  it('rejects negative or unsafe inputs', () => {
+    expect(() => moicBps(-1, 100)).toThrow();
+    expect(() => moicBps(100, Number.MAX_SAFE_INTEGER + 1)).toThrow();
   });
 });
 
@@ -88,6 +107,12 @@ describe('computePosition', () => {
     expect(() =>
       computePosition(investment({ companyId: 'co-1' }), valuation({ companyId: 'co-2' })),
     ).toThrow(/company mismatch/i);
+  });
+
+  it('throws when the valuation belongs to a different firm (tenant isolation)', () => {
+    expect(() =>
+      computePosition(investment({ firmId: 'firm-1' }), valuation({ firmId: 'firm-2' })),
+    ).toThrow(/firm mismatch/i);
   });
 });
 

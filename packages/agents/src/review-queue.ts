@@ -9,12 +9,7 @@ import {
 } from '@gramercy/ledger';
 import type { JournalEntryProposal } from './types';
 import { JOURNAL_ENTRY_SCHEMA_VERSION } from './journal-entry';
-import {
-  type Role,
-  type ApprovalPolicy,
-  canApproveAmount,
-  isSegregationOk,
-} from '@gramercy/rbac';
+import { type Role, type ApprovalPolicy, canApproveAmount, isSegregationOk } from '@gramercy/rbac';
 
 /**
  * The human-in-the-loop boundary (docs/ARCHITECTURE.md §5). An approved proposal

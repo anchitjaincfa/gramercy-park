@@ -27,6 +27,9 @@ export interface Investment {
 
 /** A fair-value mark for a whole portfolio company (its equity value). */
 export interface CompanyValuation {
+  /** The firm that owns this mark — pinned so a same-companyId valuation from
+   * another tenant can never be applied to this firm's investment. */
+  readonly firmId: string;
   readonly companyId: string;
   readonly asOf: string;
   readonly fairValueMinor: number;

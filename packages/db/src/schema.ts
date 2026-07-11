@@ -68,7 +68,11 @@ export const reconExceptionCode = pgEnum('recon_exception_code', [
   'DUPLICATE_MATCH',
 ]);
 
-const money = (name: string) => bigint(name, { mode: 'number' });
+// Money columns are Postgres BIGINT read/written as JS `bigint`, NOT `number`:
+// a BIGINT can exceed Number.MAX_SAFE_INTEGER (2^53−1), and `mode: 'number'`
+// would silently corrupt such values on read. `bigint` mode preserves every
+// stored minor unit exactly.
+const money = (name: string) => bigint(name, { mode: 'bigint' });
 
 export const firms = pgTable('firms', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -290,7 +294,7 @@ export const commitments = pgTable(
     amountMinor: money('amount_minor').notNull(),
     currency: text('currency').notNull(),
     effectiveDate: date('effective_date').notNull(),
-    recallableUsedMinor: money('recallable_used_minor').notNull().default(0),
+    recallableUsedMinor: money('recallable_used_minor').notNull().default(0n),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({

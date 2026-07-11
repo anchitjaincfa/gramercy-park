@@ -108,7 +108,19 @@ CREATE TABLE recon_exceptions (
   ledger_journal_id   uuid,
   document_id         uuid,
   resolved            boolean NOT NULL DEFAULT false,
-  created_at          timestamptz NOT NULL DEFAULT now()
+  created_at          timestamptz NOT NULL DEFAULT now(),
+
+  -- Pin every optional reference to THIS firm. These are composite FKs on
+  -- nullable columns: with the default MATCH SIMPLE semantics the constraint is
+  -- skipped while the ref is NULL, but the instant a ref is set it must point at
+  -- a row in the SAME firm — closing the cross-firm leak the plain uuid columns
+  -- would otherwise allow (parity with reconciliation_matches above).
+  CONSTRAINT fk_recon_exceptions_bank_txn_firm FOREIGN KEY (bank_transaction_id, firm_id)
+    REFERENCES bank_transactions(id, firm_id),
+  CONSTRAINT fk_recon_exceptions_document_firm FOREIGN KEY (document_id, firm_id)
+    REFERENCES source_documents(id, firm_id),
+  CONSTRAINT fk_recon_exceptions_journal_firm FOREIGN KEY (ledger_journal_id, firm_id)
+    REFERENCES journals(id, firm_id)
 );
 CREATE INDEX idx_recon_exceptions_firm ON recon_exceptions(firm_id);
 

@@ -106,7 +106,7 @@ describe('allocate — largest-remainder', () => {
         .sort((a, b) => (a.rem === b.rem ? a.i - b.i : a.rem < b.rem ? 1 : -1));
       for (const { i } of order) {
         if (leftover <= 0n) break;
-        out[i] += 1n;
+        out[i] = out[i]! + 1n;
         leftover -= 1n;
       }
       return out.map((n) => Number(n));
