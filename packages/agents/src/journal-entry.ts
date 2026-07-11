@@ -18,6 +18,13 @@ export async function proposeJournalEntry(
   proposer: JournalEntryProposer,
 ): Promise<JournalEntryProposal> {
   const raw = await proposer.propose(ctx);
+  // Pin the target entity to the request context — the model must not retarget a
+  // different entity than the one we asked it to code (tenant/entity isolation).
+  if (raw.payload.entityId !== ctx.entityId) {
+    throw new Error(
+      `journal-entry entity mismatch: proposal targets "${raw.payload.entityId}" but the request was for "${ctx.entityId}"`,
+    );
+  }
   return {
     kind: 'journal_entry',
     schemaVersion: JOURNAL_ENTRY_SCHEMA_VERSION,

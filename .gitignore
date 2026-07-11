@@ -32,3 +32,4 @@ coverage/
 # codex / claude local artifacts
 .codex/
 .claude/local/
+.vercel/

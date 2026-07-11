@@ -46,8 +46,12 @@ import type {
  * date (rejects e.g. month 13, day 32, or 2026-02-30).
  */
 function toEpochDay(iso: string): number | null {
-  const datePart = iso.split('T')[0] ?? '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+  // Validate the WHOLE string so a malformed time suffix (e.g. "2026-06-01Tx")
+  // is rejected, not silently truncated to a valid day.
+  const m =
+    /^(\d{4})-(\d{2})-(\d{2})(?:T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?$/.exec(
+      iso,
+    );
   if (!m) return null;
   const year = Number(m[1]);
   const month = Number(m[2]);
@@ -168,6 +172,13 @@ const CONFIDENCE: Record<MatchStatus, number> = {
  */
 export function reconcile(input: ReconInput): ReconResult {
   const tolerance = input.dateToleranceDays;
+  // A NaN/negative/non-integer tolerance would make every `dayDiff > tolerance`
+  // comparison false and thus false-match unrelated dates. Reject it.
+  if (!Number.isInteger(tolerance) || tolerance < 0) {
+    throw new Error(
+      `reconcile requires a non-negative integer dateToleranceDays, got ${tolerance}`,
+    );
+  }
 
   const banks: BankTransaction[] = [...input.bank].sort(byDateThenId);
   const usedLedger = new Set<string>();

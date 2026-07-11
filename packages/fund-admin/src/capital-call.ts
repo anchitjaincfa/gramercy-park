@@ -22,6 +22,16 @@ export function buildCapitalCallBatch(
   if (opts.cashAccountId === opts.capitalAccountId) {
     throw new Error('buildCapitalCallBatch: cash and capital accounts must differ');
   }
+  // The posted contributions MUST equal the call's declared total, or we would
+  // silently under/over-post the call (parity with buildDistributionBatch).
+  const contributionTotal = call.allocations
+    .filter((a) => a.kind === 'contribution')
+    .reduce((sum, a) => sum + a.amountMinor, 0);
+  if (contributionTotal !== call.totalMinor) {
+    throw new Error(
+      `buildCapitalCallBatch: contributions sum ${contributionTotal} != call total ${call.totalMinor}`,
+    );
+  }
   const lines: JournalLineInput[] = [];
   for (const alloc of call.allocations) {
     if (alloc.kind !== 'contribution') continue;

@@ -555,6 +555,32 @@ const feeOffsetLpHasContribution: Check = (ctx) => {
 // Registry & runners
 // --------------------------------------------------------------------------
 
+// 35. Every money amount must be a safe integer (no fractional cents / no float loss).
+const allAmountsInteger: Check = (ctx) => {
+  const bad: string[] = [];
+  if (!Number.isSafeInteger(ctx.call.totalMinor)) bad.push('totalMinor');
+  ctx.call.allocations.forEach((a, i) => {
+    if (!Number.isSafeInteger(a.amountMinor)) bad.push(`allocations[${i}]`);
+  });
+  return bad.length === 0
+    ? ok('ALL_AMOUNTS_INTEGER', 'all amounts are safe integer minor units')
+    : fail('ALL_AMOUNTS_INTEGER', `non-integer minor amounts: ${bad.join(', ')}`);
+};
+
+// 36. A fund's commitments must all be in the call currency — mixed-currency
+//     commitments would corrupt uncalled-headroom aggregation.
+const commitmentsSingleCurrency: Check = (ctx) => {
+  const offenders = ctx.commitments
+    .filter((c) => c.currency !== ctx.call.currency)
+    .map((c) => c.lpId);
+  return offenders.length === 0
+    ? ok('COMMITMENTS_SINGLE_CURRENCY', 'all commitments match the call currency')
+    : fail(
+        'COMMITMENTS_SINGLE_CURRENCY',
+        `commitment currency != call currency for: ${[...new Set(offenders)].join(', ')}`,
+      );
+};
+
 export const ALL_CHECKS: Check[] = [
   totalPositive,
   hasAllocations,
@@ -590,6 +616,8 @@ export const ALL_CHECKS: Check[] = [
   priorCalledNonNegative,
   commitmentAmountsPositive,
   feeOffsetLpHasContribution,
+  allAmountsInteger,
+  commitmentsSingleCurrency,
 ];
 
 /** Run every registered check against the context. */

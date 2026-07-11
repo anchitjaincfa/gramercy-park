@@ -153,6 +153,16 @@ export function consolidate(
     }));
     byEntity.set(entity.entityId, entityLines);
 
+    // Each entity's OWN ledger must balance — otherwise two individually-invalid
+    // entities could cancel out and produce a spuriously-clean group.
+    let entityNet = zero(currency);
+    for (const b of balances) entityNet = add(entityNet, b.netDebitMinusCredit);
+    if (!isZero(entityNet)) {
+      throw new Error(
+        `entity ${entity.entityId} trial balance does not net to zero: ${entityNet.amount} ${currency}`,
+      );
+    }
+
     for (const b of balances) {
       const prev = groupNet.get(b.accountId) ?? zero(currency);
       groupNet.set(b.accountId, add(prev, b.netDebitMinusCredit));

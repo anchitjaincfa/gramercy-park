@@ -151,6 +151,13 @@ export async function proposeKpi(ctx: KpiContext, proposer: KpiProposer): Promis
   ) {
     throw new Error('kpi proposer returned a malformed payload');
   }
+  // Pin the KPI to the requested company/period/metric — the model must not
+  // reconcile a value for a different company or period than we asked about.
+  if (p.companyId !== ctx.companyId || p.period !== ctx.period || p.metric !== ctx.metric) {
+    throw new Error(
+      `kpi context mismatch: proposal is for ${p.companyId}/${p.period}/${p.metric}, request was for ${ctx.companyId}/${ctx.period}/${ctx.metric}`,
+    );
+  }
   return {
     kind: 'kpi',
     schemaVersion: KPI_SCHEMA_VERSION,

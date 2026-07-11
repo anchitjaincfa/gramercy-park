@@ -16,6 +16,15 @@ import { accountBalances } from '@gramercy/ledger';
 import { allocate, money } from '@gramercy/core';
 import type { CapitalAccountBalance, NavSnapshotLpShare } from './types';
 
+/** Add two safe integers, throwing rather than silently losing cents. */
+function checkedAdd(a: number, b: number): number {
+  const sum = a + b;
+  if (!Number.isSafeInteger(sum)) {
+    throw new Error(`NAV total overflowed the safe-integer range: ${a} + ${b}`);
+  }
+  return sum;
+}
+
 /**
  * Net asset value in integer minor units, computed purely from the posted GL.
  *
@@ -33,10 +42,11 @@ export function computeNav(
   let assets = 0;
   let liabilities = 0;
   for (const bal of balances) {
-    if (bal.type === 'asset') assets += bal.normalBalance.amount;
-    else if (bal.type === 'liability') liabilities += bal.normalBalance.amount;
+    if (bal.type === 'asset') assets = checkedAdd(assets, bal.normalBalance.amount);
+    else if (bal.type === 'liability')
+      liabilities = checkedAdd(liabilities, bal.normalBalance.amount);
   }
-  return assets - liabilities;
+  return checkedAdd(assets, -liabilities);
 }
 
 /**

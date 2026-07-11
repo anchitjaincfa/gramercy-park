@@ -159,6 +159,26 @@ export async function proposeReconciliationMatch(
   ) {
     throw new Error('reconciliation proposer returned a malformed payload');
   }
+  // Pin to the provided candidates — the model may only reference ids it was
+  // given, never invent a foreign bank/ledger/document id.
+  if (p.bankTransactionId !== ctx.bankTransaction.id) {
+    throw new Error(
+      `reconciliation bankTransactionId "${p.bankTransactionId}" is not the requested transaction "${ctx.bankTransaction.id}"`,
+    );
+  }
+  if (
+    p.ledgerEntryId !== undefined &&
+    !ctx.candidateLedgerEntries.some((l) => l.id === p.ledgerEntryId)
+  ) {
+    throw new Error(
+      `reconciliation ledgerEntryId "${p.ledgerEntryId}" is not among the provided candidates`,
+    );
+  }
+  if (p.documentId !== undefined && !ctx.candidateDocuments.some((d) => d.id === p.documentId)) {
+    throw new Error(
+      `reconciliation documentId "${p.documentId}" is not among the provided candidates`,
+    );
+  }
   return {
     kind: 'reconciliation_match',
     schemaVersion: RECONCILIATION_SCHEMA_VERSION,
